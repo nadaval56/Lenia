@@ -50,16 +50,69 @@ function seedFromRows(rows) {
 }
 
 /**
+ * סיבוב seed ב‑180° — חוקי לניה איזוטרופיים (לא מבדילים כיוונים),
+ * לכן יצור מסובב שוחה באותה צורה, רק לכיוון ההפוך.
+ */
+function rotate180(seed) {
+  const { w, h, cells } = seed;
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) out[(h - 1 - y) * w + (w - 1 - x)] = cells[y * w + x];
+  }
+  return { w, h, cells: out };
+}
+
+/**
+ * הרכבת כמה seeds ללוח אחד גדול — לניסויים כמו התנגשות בין יצורים.
+ * @param {number} w רוחב הלוח המורכב
+ * @param {number} h גובה הלוח המורכב
+ * @param {Array<{seed:object, x:number, y:number}>} placements מיקומי הפינות
+ */
+function compose(w, h, placements) {
+  const cells = new Float32Array(w * h);
+  for (const { seed, x: x0, y: y0 } of placements) {
+    for (let y = 0; y < seed.h; y++) {
+      for (let x = 0; x < seed.w; x++) {
+        cells[(y0 + y) * w + (x0 + x)] = seed.cells[y * seed.w + x];
+      }
+    }
+  }
+  return { w, h, cells };
+}
+
+/**
  * רשימת היצורים המובנים.
  * כל רשומה: name (לתצוגה), description (טיפ לילד), params, seed.
  */
+const ORBIUM_SEED = seedFromRows(ORBIUM_CELLS);
+
 export const CREATURES = [
   {
     id: 'orbium',
     name: 'אורביום — המדוזה השוחה',
     description: 'היצור המפורסם של לניה. שוחה באלכסון בקו ישר. נסו להזיז מעט את σ ותראו מה קורה לו!',
     params: { mu: 0.15, sigma: 0.017, R: 13, T: 10 },
-    seed: seedFromRows(ORBIUM_CELLS),
+    seed: ORBIUM_SEED,
+  },
+  {
+    id: 'collision',
+    name: 'ההתנגשות 💥',
+    description: 'שני אורביומים שוחים זה מול זה. חכו בסבלנות למפגש... לפעמים שניהם מתאדים, ולפעמים נולד משהו חדש — תלוי בגודל העולם!',
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10 },
+    // אחד רגיל ואחד מסובב 180° — כך הם שוחים בדיוק אחד לקראת השני.
+    // המרווח ביניהם (48 תאים באלכסון) אומת מספרית: הם מתנגשים ומתאיידים.
+    seed: compose(68, 68, [
+      { seed: ORBIUM_SEED, x: 0, y: 0 },
+      { seed: rotate180(ORBIUM_SEED), x: 48, y: 48 },
+    ]),
+  },
+  {
+    id: 'boiling',
+    name: 'המושבה הרותחת 🫧',
+    description: 'מרק שלא נרדם! כשהזמן T קטן, העולם נשאר רותח ומשתנה לנצח. כל לחיצה — עולם חדש.',
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 3 },
+    // בלי seed קבוע: הניסוי הזה נזרע ממרק אקראי טרי בכל הפעלה.
+    soup: { density: 0.5 },
   },
 ];
 

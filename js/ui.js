@@ -254,11 +254,17 @@ function setupPhaseMapInput() {
 
 /* ================= יצורים: טעינה, שמירה, גלריה ================= */
 
-/** טעינת יצור (מובנה או מהקטלוג) לעולם */
-function loadCreatureIntoWorld(params, seed, name) {
+/**
+ * טעינת יצור או ניסוי לעולם.
+ * @param {{params:object, seed?:object, soup?:{density:number}, name?:string}} entry
+ * יצור רגיל מגיע עם seed (דפוס קבוע); "ניסוי מרק" (כמו המושבה הרותחת)
+ * מגיע עם soup — ואז זורעים רעש אקראי טרי בכל הפעלה.
+ */
+function loadCreatureIntoWorld({ params, seed, soup, name }) {
   sim.setParams(params);
   sim.clear();
-  sim.placeSeed(seed);
+  if (seed) sim.placeSeed(seed);
+  if (soup) sim.soup(soup.density);
   massHistory.length = 0;
   syncSlidersFromParams();
   setRunning(true);
@@ -273,7 +279,7 @@ function renderBuiltinCreatures() {
     const btn = document.createElement('button');
     btn.className = 'creature-btn';
     btn.innerHTML = `<strong>${c.name}</strong><small>${c.description}</small>`;
-    btn.addEventListener('click', () => loadCreatureIntoWorld(c.params, c.seed, c.name));
+    btn.addEventListener('click', () => loadCreatureIntoWorld(c));
     container.appendChild(btn);
   }
 }
@@ -308,7 +314,7 @@ function renderGallery() {
     const loadBtn = document.createElement('button');
     loadBtn.textContent = '🐣 שחרר לעולם';
     loadBtn.addEventListener('click', () => {
-      loadCreatureIntoWorld(e.params, catalog.decodeSeed(e.seed), e.name);
+      loadCreatureIntoWorld({ params: e.params, seed: catalog.decodeSeed(e.seed), name: e.name });
     });
 
     const delBtn = document.createElement('button');
@@ -463,7 +469,7 @@ function init() {
 
   // פתיחה עם "וואו": האורביום שוחה מהשנייה הראשונה
   const orbium = CREATURES[0];
-  if (orbium) loadCreatureIntoWorld(orbium.params, orbium.seed, null);
+  if (orbium) loadCreatureIntoWorld({ params: orbium.params, seed: orbium.seed });
 
   setRunning(true);
   requestAnimationFrame(frame);

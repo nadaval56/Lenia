@@ -81,7 +81,7 @@ js/render.js      ציור לקנבס + פלטות צבע
 js/ui.js          סליידרים, כפתורים, מחוון החיים, הלולאה הראשית
 js/phasemap.js    מפת הפאזה μ-σ (נדגמת חיה ברקע)
 js/catalog.js     ספר המינים: localStorage, ייצוא/ייבוא JSON
-js/creatures.js   יצורים מובנים (אורביום)
+js/creatures.js   יצורים וניסויים מובנים (אורביום, ההתנגשות, המושבה הרותחת)
 tests/            בדיקות מספריות (node tests/verify.mjs)
 ```
 
