@@ -1,0 +1,342 @@
+/* ============================================================
+   סייר לניה — עיצוב
+   עברית, RTL, ידידותי לילדים ולמסכי מגע.
+   ============================================================ */
+
+:root {
+  --bg: #0d1117;
+  --panel: #161d2b;
+  --panel-2: #1c2436;
+  --text: #e8ecf4;
+  --muted: #9aa5b8;
+  --accent: #34c776;
+  --accent-2: #4f8ef7;
+  --danger: #e85042;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Heebo", "Arial Hebrew", Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+header {
+  text-align: center;
+  padding: 18px 12px 6px;
+}
+h1 { margin: 0; font-size: 2rem; }
+.subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+h2 { font-size: 1.2rem; margin: 0 0 12px; }
+h3 { font-size: 1rem; margin: 14px 0 8px; }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(320px, 620px) minmax(280px, 380px);
+  gap: 18px;
+  justify-content: center;
+  align-items: start;
+  padding: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+section {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.catalog { grid-column: 1 / -1; }
+
+/* מובייל: עמודה אחת */
+@media (max-width: 760px) {
+  main { grid-template-columns: 1fr; }
+}
+
+/* ---------- הבמה ---------- */
+
+.world {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  background: #05070d;
+  touch-action: none;        /* מגע מצייר, לא גולל */
+  cursor: crosshair;
+}
+
+.indicator-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.life-state {
+  font-size: 1.5rem;
+  font-weight: 800;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 2px solid;
+  transition: color .4s, background .4s, border-color .4s;
+  white-space: nowrap;
+}
+
+.indicator-side { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 150px; }
+#sparkline { width: 100%; height: 46px; background: #0a0f1a; border-radius: 8px; }
+.mass-value { font-size: 0.75rem; color: var(--muted); }
+
+.life-hint {
+  min-height: 1.3em;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 2px 0 10px;
+}
+
+/* ---------- כפתורים ---------- */
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #2b3650;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  min-height: 44px;          /* יעד מגע נוח לאצבעות */
+  transition: transform .05s, background .15s;
+}
+button:active { transform: scale(0.96); }
+button.big { font-size: 1.05rem; font-weight: 700; }
+button.primary { background: var(--accent); color: #06240f; border-color: transparent; }
+button.danger { background: transparent; border-color: var(--danger); }
+button.active { background: var(--accent-2); color: #fff; border-color: transparent; }
+
+.transport, .speed-row, .brush-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.speed-row span, .brush-row .tip { color: var(--muted); font-size: 0.85rem; }
+.speed-row button { min-height: 38px; padding: 6px 12px; }
+.brush-row label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+
+/* ---------- סליידרים ---------- */
+
+.param { margin-bottom: 16px; }
+.param label { display: block; }
+.param .kid-hint { display: block; color: var(--muted); font-size: 0.82rem; }
+.main-param strong { font-size: 1.15rem; }
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.slider-row output {
+  min-width: 56px;
+  text-align: center;
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 4px 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+
+input[type="range"] {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 34px;              /* אזור מגע גבוה */
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #2b3650;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px; height: 26px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #0d1117;
+}
+input[type="range"]::-moz-range-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #2b3650;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #0d1117;
+}
+
+/* ---------- מפת הפאזה ---------- */
+
+.phase-wrap { margin: 18px 0; }
+.phase-wrap h3 { margin-top: 0; }
+.phase-wrap small { color: var(--muted); font-weight: 400; }
+.phase-axes { display: flex; align-items: stretch; gap: 6px; }
+.axis-y { writing-mode: vertical-rl; transform: rotate(180deg); color: var(--muted); font-size: 0.8rem; align-self: center; }
+.axis-x { display: block; text-align: center; color: var(--muted); font-size: 0.8rem; }
+#phaseMap {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 10px;
+  touch-action: none;
+  cursor: pointer;
+}
+.phase-legend { font-size: 0.78rem; color: var(--muted); margin: 6px 0 0; }
+.lg { padding: 1px 7px; border-radius: 999px; margin-inline-end: 2px; white-space: nowrap; }
+.lg-void { background: rgba(59,108,217,.25); }
+.lg-life { background: rgba(52,199,118,.25); }
+.lg-chaos { background: rgba(232,80,66,.25); }
+
+/* ---------- מתקדם + הסבר ---------- */
+
+details {
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 12px;
+}
+summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+details .param { margin-top: 14px; }
+.selects { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
+.selects label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+select {
+  font: inherit;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #2b3650;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 40px;
+}
+.explainer p { font-size: 0.92rem; }
+
+/* ---------- ספר המינים ---------- */
+
+.creature-btn {
+  display: block;
+  width: 100%;
+  text-align: start;
+  margin-bottom: 8px;
+  padding: 12px 14px;
+}
+.creature-btn small { display: block; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+.my-catalog #saveBtn { width: 100%; margin-bottom: 10px; }
+.empty-note { color: var(--muted); font-size: 0.9rem; }
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 10px 0;
+}
+.card {
+  background: var(--panel-2);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #05070d;
+}
+.card-title { font-weight: 700; font-size: 0.95rem; overflow-wrap: anywhere; }
+.card-meta { font-size: 0.75rem; color: var(--muted); }
+.card-actions { display: flex; gap: 6px; margin-top: auto; }
+.card-actions button { flex: 1; min-height: 40px; padding: 6px; font-size: 0.85rem; }
+.card-actions .danger { flex: 0 0 44px; }
+
+.io-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.import-label {
+  display: inline-flex;
+  align-items: center;
+  background: var(--panel-2);
+  border: 1px solid #2b3650;
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+/* ---------- דיאלוג ---------- */
+
+dialog {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #2b3650;
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 90vw;
+  width: 340px;
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+dialog h3 { margin-top: 0; }
+dialog label { display: block; margin-bottom: 12px; font-size: 0.9rem; }
+dialog input[type="text"] {
+  display: block;
+  width: 100%;
+  font: inherit;
+  margin-top: 4px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #2b3650;
+  background: var(--panel-2);
+  color: var(--text);
+}
+.dialog-actions { display: flex; gap: 8px; justify-content: flex-start; }
+
+/* ---------- טוסט ---------- */
+
+.toast {
+  position: fixed;
+  bottom: 18px;
+  right: 50%;
+  transform: translateX(50%) translateY(80px);
+  background: var(--panel-2);
+  border: 1px solid #2b3650;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  opacity: 0;
+  transition: transform .3s, opacity .3s;
+  pointer-events: none;
+  z-index: 50;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(50%) translateY(0); }
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 20px 12px 30px;
+}
+footer a { color: var(--accent-2); }

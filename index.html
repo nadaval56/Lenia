@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>סייר לניה — מעבדת חיים מלאכותיים</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦠</text></svg>">
+</head>
+<body>
+
+  <header>
+    <h1>🦠 סייר לניה</h1>
+    <p class="subtitle">מעבדת חיים מלאכותיים — גלו יצורים דיגיטליים שנולדים ממתמטיקה</p>
+  </header>
+
+  <main>
+    <!-- ======== הבמה: העולם + מחוון החיים ======== -->
+    <section class="stage">
+      <div class="indicator-row">
+        <div id="lifeState" class="life-state">חיים! 🌱</div>
+        <div class="indicator-side">
+          <canvas id="sparkline" width="240" height="46"></canvas>
+          <div id="massValue" class="mass-value">מסה: 0%</div>
+        </div>
+      </div>
+      <div id="lifeHint" class="life-hint"></div>
+
+      <canvas id="world" class="world"></canvas>
+
+      <div class="transport">
+        <button id="playBtn" class="big">⏸️ עצור</button>
+        <button id="stepBtn">⏭️ צעד</button>
+        <button id="soupBtn" class="big primary">🥣 מרק אקראי</button>
+        <button id="clearBtn">🧹 נקה</button>
+        <button id="resetBtn">♻️ איפוס</button>
+      </div>
+
+      <div class="speed-row">
+        <span>מהירות:</span>
+        <button data-speed="0.5">🐢 חצי</button>
+        <button data-speed="1" class="active">רגיל</button>
+        <button data-speed="2">מהיר</button>
+        <button data-speed="4">🐇 טורבו</button>
+      </div>
+
+      <div class="brush-row">
+        <button id="brushMode">✏️ צייר</button>
+        <label>גודל מברשת <span id="brushValue">4</span>
+          <input type="range" id="brushSlider" min="2" max="12" step="1" value="4">
+        </label>
+        <span class="tip">💡 ציירו עם האצבע ישר על העולם!</span>
+      </div>
+    </section>
+
+    <!-- ======== הפרמטרים: הכפתורים של הבריאה ======== -->
+    <section class="controls">
+      <h2>🎛️ חוקי העולם</h2>
+
+      <div class="param main-param">
+        <label for="muSlider">
+          <strong>μ — צפיפות מועדפת</strong>
+          <span class="kid-hint">כמה צפוף צריך להיות כדי לגדול</span>
+        </label>
+        <div class="slider-row">
+          <input type="range" id="muSlider" min="0.10" max="0.35" step="0.001" value="0.15">
+          <output id="muValue">0.150</output>
+        </div>
+      </div>
+
+      <div class="param main-param">
+        <label for="sigmaSlider">
+          <strong>σ — גמישות החוק</strong>
+          <span class="kid-hint">כמה סטייה מהצפיפות המועדפת עדיין מותרת</span>
+        </label>
+        <div class="slider-row">
+          <input type="range" id="sigmaSlider" min="0.005" max="0.10" step="0.001" value="0.017">
+          <output id="sigmaValue">0.017</output>
+        </div>
+      </div>
+
+      <div class="phase-wrap">
+        <h3>🗺️ מפת אזור החיים <small>(קירוב — נמדד בדגימה חיה)</small></h3>
+        <div class="phase-axes">
+          <span class="axis-y" dir="ltr">σ: 0.005 → 0.10</span>
+          <canvas id="phaseMap" width="225" height="165"></canvas>
+        </div>
+        <span class="axis-x" dir="ltr">μ: 0.10 → 0.35</span>
+        <p class="phase-legend">
+          <span class="lg lg-void">כחול = דעך</span>
+          <span class="lg lg-life">ירוק = חיים</span>
+          <span class="lg lg-chaos">אדום = כאוס</span>
+          · לחצו על המפה כדי לקפוץ לשם!
+        </p>
+      </div>
+
+      <details class="advanced">
+        <summary>⚙️ עוד הגדרות</summary>
+
+        <div class="param">
+          <label for="rSlider">
+            <strong>R — טווח ראייה</strong>
+            <span class="kid-hint">כמה רחוק כל תא רואה (גודל היצור)</span>
+          </label>
+          <div class="slider-row">
+            <input type="range" id="rSlider" min="8" max="20" step="1" value="13">
+            <output id="rValue">13</output>
+          </div>
+        </div>
+
+        <div class="param">
+          <label for="tSlider">
+            <strong>T — חלקוּת</strong>
+            <span class="kid-hint">כמה חלקה ההנפשה (עדכון איטי יותר = חלק יותר)</span>
+          </label>
+          <div class="slider-row">
+            <input type="range" id="tSlider" min="2" max="20" step="1" value="10">
+            <output id="tValue">10</output>
+          </div>
+        </div>
+
+        <div class="param">
+          <label for="densitySlider">
+            <strong>צפיפות המרק</strong>
+            <span class="kid-hint">כמה רעש נזרע בלחיצה על "מרק אקראי"</span>
+          </label>
+          <div class="slider-row">
+            <input type="range" id="densitySlider" min="0.1" max="0.9" step="0.05" value="0.5">
+            <output id="densityValue">50%</output>
+          </div>
+        </div>
+
+        <div class="selects">
+          <label>🎨 פלטת צבע
+            <select id="paletteSelect"></select>
+          </label>
+          <label>🔍 רזולוציה
+            <select id="resolutionSelect">
+              <option value="96">96×96 (מהיר)</option>
+              <option value="128" selected>128×128 (רגיל)</option>
+              <option value="160">160×160 (חד)</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
+      <details class="explainer">
+        <summary>🤔 מה זה "קצה הכאוס"?</summary>
+        <p>
+          בעולם של לניה יש חוק אחד פשוט: כל תא בודק כמה "צפוף" סביבו.
+          אם הצפיפות קרובה למספר הקסם <strong>μ</strong> — התא גדל. אחרת — הוא נחלש.
+        </p>
+        <p>
+          כשהחוק <strong>קפדני מדי</strong> (σ קטן) — כמעט אף תא לא מצליח, והכול דועך 🕳️.
+          כשהחוק <strong>מתירני מדי</strong> (σ גדול) — הכול גדל בלי שליטה ומתפוצץ לרעש 🔥.
+          אבל בדיוק באמצע, ברצועה צרה — נולדים יצורים 🌱 שזזים, שוחים ושומרים על עצמם!
+        </p>
+        <p>
+          המדענים קוראים לרצועה הזאת <strong>"קצה הכאוס"</strong> — ויש הטוענים
+          שגם החיים האמיתיים על כדור הארץ נמצאים בדיוק שם.
+          נסו למצוא את הרצועה בעצמכם עם שני הסליידרים!
+        </p>
+      </details>
+    </section>
+
+    <!-- ======== ספר המינים ======== -->
+    <section class="catalog">
+      <h2>📖 ספר המינים</h2>
+
+      <div class="builtin">
+        <h3>יצורים מפורסמים</h3>
+        <div id="builtinCreatures"></div>
+      </div>
+
+      <div class="my-catalog">
+        <h3>הגילויים שלי</h3>
+        <button id="saveBtn" class="big primary">📸 שמור את היצור הנוכחי</button>
+        <p id="emptyGallery" class="empty-note">
+          עוד לא גיליתם יצורים... זרעו מרק 🥣, שחקו עם μ ו‑σ, וכשמשהו מעניין ישרוד — שמרו אותו!
+        </p>
+        <div id="gallery" class="gallery"></div>
+        <div class="io-row">
+          <button id="exportBtn">📤 ייצוא הקטלוג (JSON)</button>
+          <label class="import-label">📥 ייבוא קטלוג
+            <input type="file" id="importInput" accept=".json,application/json" hidden>
+          </label>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- דיאלוג שמירת יצור -->
+  <dialog id="saveDialog">
+    <form method="dialog">
+      <h3>📸 שמירת יצור חדש</h3>
+      <label>שם היצור
+        <input type="text" id="creatureName" placeholder="למשל: מדוזת ברק" maxlength="40" autocomplete="off">
+      </label>
+      <label>המגלה (השם שלך)
+        <input type="text" id="studentName" placeholder="השם שלי" maxlength="30" autocomplete="off">
+      </label>
+      <div class="dialog-actions">
+        <button id="confirmSave" class="primary">שמירה 💾</button>
+        <button id="cancelSave" type="button">ביטול</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+
+  <footer>
+    <p>
+      מבוסס על <a href="https://chakazul.github.io/lenia.html" target="_blank" rel="noopener">Lenia</a>
+      של ברט צ'אן (Bert Chan) · הכול רץ אצלכם בדפדפן, שום דבר לא נשלח לאינטרנט
+    </p>
+  </footer>
+
+  <script type="module" src="js/ui.js"></script>
+</body>
+</html>
