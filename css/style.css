@@ -239,6 +239,48 @@ input[type="range"]::-moz-range-thumb {
 }
 .param-more em { color: var(--text); font-style: normal; font-weight: 600; }
 
+/* ---------- כפתורי הגרלה + פאנל חוקים צבעוני ---------- */
+
+.dice-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.dice-row button {
+  flex: 1;
+  min-width: 130px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2a3550, #34274a);
+}
+.dice-hint { font-size: 0.8rem; color: var(--muted); margin: 0 0 12px; }
+
+.multi-rules { margin-bottom: 8px; }
+.rules-intro { font-weight: 700; margin: 0 0 8px; font-size: 0.95rem; }
+.rule-conn {
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.rule-title { font-weight: 600; margin-bottom: 6px; font-size: 0.92rem; }
+.rule-title small { color: var(--muted); font-weight: 400; }
+.rule-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.rule-slider > span:first-child {
+  width: 1.4em;
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent);
+}
+.rule-slider input[type="range"] { flex: 1; }
+.rule-slider output {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 /* ---------- עולם צבעוני (רב־ערוצי) ---------- */
 
 .multi-note {

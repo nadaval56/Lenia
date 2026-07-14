@@ -26,7 +26,7 @@
  * תא שערכו חסר (null) נדגם חי ברקע.
  */
 
-import { Lenia, classifyState, seededRandom, KERNEL_TYPES } from './lenia.js?v=6';
+import { Lenia, classifyState, seededRandom, KERNEL_TYPES } from './lenia.js?v=7';
 
 /** תצורת הדגימה — שינוי כאן מאלץ דגימה מחדש (דרך מפתח המטמון) */
 const CONFIG = {
@@ -103,6 +103,20 @@ export class PhaseMap {
     this.type = type;
     this.sampleIndex = 0;   // הדוגם יתחיל לסרוק את המפה החדשה
     this.currentSim = null;
+  }
+
+  /**
+   * בחירת (μ,σ) אקראיים מתא שסומן "חיים" במפה של גרעין נתון —
+   * משמש את כפתור "🎲 הגרל חוקים" כדי לנחות ישר ברצועת החיים.
+   * @returns {{mu:number, sigma:number} | null} null אם אין תאי חיים ידועים
+   */
+  randomLifeParams(type) {
+    const cells = this.maps[type];
+    if (!cells) return null;
+    const alive = [];
+    for (let i = 0; i < cells.length; i++) if (cells[i] === 'life') alive.push(i);
+    if (!alive.length) return null;
+    return this.cellParams(alive[Math.floor(Math.random() * alive.length)]);
   }
 
   /** ערכי (μ,σ) של תא במפה */

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>סייר לניה — מעבדת חיים מלאכותיים</title>
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦠</text></svg>">
 </head>
 <body>
@@ -94,13 +94,26 @@
     <section class="controls">
       <h2>🎛️ חוקי העולם</h2>
 
-      <p id="multiNote" class="multi-note" hidden>
-        🌈 אתם בעולם מיוחד! החוקים כאן הם רשת "חיבורים" מוכנה מראש —
-        כמה משקפיים בו־זמנית, או כמה חומרים שמשפיעים זה על זה — לכן
-        μ, σ והמשקפיים כבויים. עדיין אפשר לצייר, לזרוע מרק, לשנות
-        מהירות ולשמור תגליות. חזרה לעולם הרגיל: ♻️ איפוס או כל יצור רגיל.
+      <div class="dice-row">
+        <button id="randomRulesBtn">🎲 הגרל חוקים</button>
+        <button id="randomEcologyBtn">🎲 אקולוגיה אקראית 🌈</button>
+      </div>
+      <p class="dice-hint">
+        רוב האקולוגיות ימותו או יתפוצצו — זה המשחק. גלגלו שוב עד שאחת תחיה 🌱
       </p>
 
+      <p id="multiNote" class="multi-note" hidden>
+        🌈 אתם בעולם מיוחד! החוקים כאן הם רשת "חיבורים" — כמה משקפיים
+        בו־זמנית, או כמה חומרים שמשפיעים זה על זה. כוונו אותם בפאנל
+        למטה, או גלגלו אקולוגיה חדשה. חזרה לעולם הרגיל: ♻️ איפוס או כל
+        יצור רגיל.
+      </p>
+
+      <!-- פאנל חוקים חי לעולם הצבעוני — נבנה דינמית ב-ui.js -->
+      <div id="multiRules" class="multi-rules" hidden></div>
+
+      <!-- פקדי העולם החד־ערוצי (μ/σ/משקפיים/מפה) — מוסתרים בעולם צבעוני -->
+      <div id="singleRules">
       <div class="param main-param">
         <label for="muSlider">
           <strong>μ — צפיפות מועדפת</strong>
@@ -193,6 +206,7 @@
           לכל צורת משקפיים יש מפה משלה.
         </p>
       </div>
+      </div><!-- /#singleRules -->
 
       <details class="advanced">
         <summary>⚙️ עוד הגדרות</summary>
@@ -348,10 +362,10 @@
     <p>
       מבוסס על <a href="https://chakazul.github.io/lenia.html" target="_blank" rel="noopener">Lenia</a>
       של ברט צ'אן (Bert Chan) · הכול רץ אצלכם בדפדפן, שום דבר לא נשלח לאינטרנט
-      · גרסה 6
+      · גרסה 7
     </p>
   </footer>
 
-  <script type="module" src="js/ui.js?v=6"></script>
+  <script type="module" src="js/ui.js?v=7"></script>
 </body>
 </html>

@@ -5,12 +5,12 @@
  * הרינדור (render.js), הקטלוג (catalog.js) ומפת הפאזה (phasemap.js).
  */
 
-import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=6';
-import { LeniaMulti } from './multi.js?v=6';
-import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=6';
-import { PhaseMap } from './phasemap.js?v=6';
-import { CREATURES } from './creatures.js?v=6';
-import * as catalog from './catalog.js?v=6';
+import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=7';
+import { LeniaMulti } from './multi.js?v=7';
+import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=7';
+import { PhaseMap } from './phasemap.js?v=7';
+import { CREATURES } from './creatures.js?v=7';
+import * as catalog from './catalog.js?v=7';
 
 /* ================= הגדרות כלליות ================= */
 
@@ -187,18 +187,169 @@ function syncSlidersFromParams() {
 
 /* ================= עולם צבעוני (רב־ערוצי) ================= */
 
+// שמות הערוצים ואימוג'י הצבע — תואמים בדיוק ל‑CHANNEL_COLORS ב‑render.js
+// (0 = ירוק, 1 = אדום, 2 = כחול).
 const CHANNEL_NAMES = ['ירוק', 'אדום', 'כחול'];
+const CHANNEL_EMOJI = ['🟢', '🔴', '🔵'];
 
-/** כניסה/יציאה ממצב עולם צבעוני: מנטרל את פקדי העולם היחיד */
+/**
+ * כניסה/יציאה ממצב עולם צבעוני:
+ * מסתיר את פקדי העולם היחיד (μ/σ/משקפיים/מפה) ומציג את פאנל
+ * החוקים החי של העולם הצבעוני במקומם.
+ */
 function setMultiMode(on) {
   isMulti = on;
-  for (const id of ['muSlider', 'sigmaSlider', 'rSlider', 'kernelSelect', 'boundarySelect']) {
-    $(id).disabled = on;
-  }
-  document.querySelector('.phase-wrap').classList.toggle('disabled', on);
+  $('singleRules').hidden = on;   // μ/σ/kernel/מפה
+  $('multiRules').hidden = !on;   // פאנל החיבורים החי
+  $('boundarySelect').disabled = on; // נשאר ב"עוד הגדרות", לכן מכובה ידנית
   $('multiNote').hidden = !on;
   $('channelPicker').hidden = !on;
   if (!on) brushChannel = 0;
+}
+
+/**
+ * תיאור מילולי של חיבור, בעזרת צבעי הערוצים והכיוון:
+ *   h>0 מעודד (→), h<0 מדכא (⊣), src===dst = "על עצמו".
+ */
+function connectionLabel(conn) {
+  const s = CHANNEL_EMOJI[conn.src] ?? '⬜';
+  const d = CHANNEL_EMOJI[conn.dst] ?? '⬜';
+  const sName = CHANNEL_NAMES[conn.src] ?? `חומר ${conn.src + 1}`;
+  const dName = CHANNEL_NAMES[conn.dst] ?? `חומר ${conn.dst + 1}`;
+  if (conn.src === conn.dst) return `${s} ${sName} → על עצמו`;
+  const arrow = conn.h >= 0 ? '→' : '⊣';
+  const verb = conn.h >= 0 ? 'מעודד' : 'מדכא';
+  return `${s} ${sName} ${arrow} ${d} ${dName} <small>(${verb})</small>`;
+}
+
+/** יצירת סליידר חוק בודד לפאנל הצבעוני (μ/σ/h של חיבור) */
+function makeRuleSlider(label, value, min, max, step, onChange, fmt) {
+  const wrap = document.createElement('label');
+  wrap.className = 'rule-slider';
+  const name = document.createElement('span');
+  name.textContent = label;
+  const out = document.createElement('output');
+  out.textContent = fmt(value);
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.min = min; slider.max = max; slider.step = step;
+  slider.value = value;
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    out.textContent = fmt(v);
+    onChange(v); // משנה ישירות את conn.mu/sigma/h — נכנס לתוקף מיד, בלי rebuild
+  });
+  wrap.append(name, slider, out);
+  return wrap;
+}
+
+/**
+ * בניית פאנל החוקים החי של העולם הצבעוני — קבוצה לכל חיבור.
+ * העריכות משנות את sim.connections[i] ישירות; מכיוון ש‑step() קורא
+ * את mu/sigma/h בכל פריים, ההשפעה מיידית ולא דורשת בנייה מחדש.
+ */
+function buildMultiRules() {
+  const panel = $('multiRules');
+  panel.innerHTML = '';
+  const intro = document.createElement('p');
+  intro.className = 'rules-intro';
+  intro.textContent = '🎨 חוקי העולם הצבעוני — גררו כדי לכוונן חי:';
+  panel.appendChild(intro);
+
+  sim.connections.forEach((conn) => {
+    const box = document.createElement('div');
+    box.className = 'rule-conn';
+    const title = document.createElement('div');
+    title.className = 'rule-title';
+    title.innerHTML = connectionLabel(conn);
+    box.appendChild(title);
+    box.appendChild(makeRuleSlider('μ', conn.mu, 0.05, 0.5, 0.005,
+      (v) => { conn.mu = v; }, (v) => v.toFixed(3)));
+    box.appendChild(makeRuleSlider('σ', conn.sigma, 0.01, 0.2, 0.005,
+      (v) => { conn.sigma = v; }, (v) => v.toFixed(3)));
+    box.appendChild(makeRuleSlider('h', conn.h, -1.5, 1.5, 0.05,
+      (v) => {
+        conn.h = v;
+        // הכיוון (מעודד/מדכא) עלול להשתנות עם סימן h — מעדכנים כותרת
+        title.innerHTML = connectionLabel(conn);
+      }, (v) => v.toFixed(2)));
+    panel.appendChild(box);
+  });
+}
+
+/* ================= מחוללי אקראיות (🎲) ================= */
+
+/** מספר אקראי אחיד בטווח [lo, hi] */
+function randRange(lo, hi) { return lo + Math.random() * (hi - lo); }
+
+/**
+ * ג'נרוט תצורת אקולוגיה אקראית. הטיה לכיוון "מעניין": מבטיחים
+ * לפחות חיבור עצמי מעודד אחד ולפחות חיבור מדכא אחד — המתכון
+ * המינימלי לדינמיקה חיה במקום קיפאון או התפוצצות.
+ */
+function makeRandomEcology() {
+  const C = Math.random() < 0.5 ? 2 : 3;
+  const R = 8 + Math.floor(Math.random() * 6);   // 8..13
+  const T = 8 + Math.floor(Math.random() * 5);   // 8..12
+  const nConn = C + Math.floor(Math.random() * (C + 1)); // C..2C
+  const connections = [];
+
+  // חובה: חיבור עצמי מעודד (חומר שיודע לחיות בכוחות עצמו)
+  const selfCh = Math.floor(Math.random() * C);
+  connections.push({ src: selfCh, dst: selfCh, mu: randRange(0.10, 0.30), sigma: randRange(0.02, 0.06), h: randRange(0.5, 1) });
+  // חובה: חיבור מדכא (מישהו שמפריע למישהו)
+  const a = Math.floor(Math.random() * C), b = Math.floor(Math.random() * C);
+  connections.push({ src: a, dst: b, mu: randRange(0.10, 0.35), sigma: randRange(0.02, 0.08), h: -randRange(0.3, 1), unit: Math.random() < 0.5 });
+  // שאר החיבורים — חופשיים לגמרי
+  while (connections.length < nConn) {
+    connections.push({ src: Math.floor(Math.random() * C), dst: Math.floor(Math.random() * C), mu: randRange(0.10, 0.35), sigma: randRange(0.02, 0.08), h: randRange(-1, 1) });
+  }
+  return { C, R, T, connections };
+}
+
+/**
+ * בדיקה חבויה מהירה: מריצים ~60 צעדים על רשת קטנה ומחזירים true אם
+ * המצב "חי" (לא נמוג ולא רווי). מסנן חלק גדול מהגלגולים המתים.
+ */
+function ecologyLives(config) {
+  const test = new LeniaMulti(48, 48, config);
+  test.soup(0.3, 0.6);
+  for (let i = 0; i < 60; i++) test.step();
+  return classifyState(test.mass, test.coverage) === 'life';
+}
+
+/** כפתור "🎲 אקולוגיה אקראית": מגריל עולם צבעוני חדש ומאפשר לכוונן */
+function doRandomEcology() {
+  let config = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    config = makeRandomEcology();
+    if (ecologyLives(config)) break; // מצאנו אחת שנראית חיה — עוצרים
+  }
+  loadCreatureIntoWorld({
+    multi: config,
+    soup: { density: 0.3, fraction: 0.6 },
+    toastMsg: 'אקולוגיה חדשה! 🎲 כוונו את הסליידרים, או גלגלו שוב עד שאחת תחיה 🌱',
+  });
+}
+
+/** כפתור "🎲 הגרל חוקים" (עולם חד־ערוצי): גרעין אקראי + μ/σ ברצועת החיים */
+function doRandomRules() {
+  // אם אנחנו בעולם צבעוני — חוזרים קודם לעולם רגיל
+  if (isMulti) {
+    sim = new Lenia(gridSize, gridSize, { ...DEFAULTS });
+    setMultiMode(false);
+  }
+  const types = Object.keys(KERNEL_TYPES);
+  const kt = types[Math.floor(Math.random() * types.length)];
+  // בוחרים נקודת (μ,σ) שהמפה כבר סימנה כ"חיים" עבור הגרעין הזה
+  const life = phaseMap.randomLifeParams(kt) ?? { mu: 0.15, sigma: 0.03 };
+  sim.setParams({ ...DEFAULTS, kernelType: kt, mu: +life.mu.toFixed(3), sigma: +life.sigma.toFixed(3) });
+  syncSlidersFromParams();
+  sim.clear();
+  sim.soup(soupDensity);
+  massHistory.length = 0;
+  setRunning(true);
+  toast(`הגרלנו חוקים! 🎲 ${KERNEL_TYPES[kt].name}`);
 }
 
 /** בניית כפתורי בחירת "חומר" למברשת, לפי מספר הערוצים בעולם */
@@ -345,9 +496,13 @@ function setupPhaseMapInput() {
 function loadCreatureIntoWorld({ params, seed, soup, brush, toastMsg, name, multi }) {
   if (multi) {
     // עולם צבעוני: מנוע רב־ערוצי עם רשת החיבורים של הניסוי
-    sim = new LeniaMulti(gridSize, gridSize, multi);
+    // משכפלים את התצורה כדי שכיוונון חי לא יזהם את הגדרות היצור
+    // המקוריות (חשוב במיוחד ליצורים מובנים ולטעינה חוזרת).
+    const cfg = structuredClone(multi);
+    sim = new LeniaMulti(gridSize, gridSize, cfg);
     setMultiMode(true);
-    buildChannelPicker(multi.C);
+    buildChannelPicker(cfg.C);
+    buildMultiRules(); // פאנל החוקים החי מותאם לחיבורים של העולם הזה
   } else {
     if (isMulti) {
       // חזרה לעולם רגיל מעולם מיוחד
@@ -549,6 +704,10 @@ function init() {
   $('soupBtn').addEventListener('click', doSoup);
   $('clearBtn').addEventListener('click', doClear);
   $('resetBtn').addEventListener('click', doReset);
+
+  // כפתורי ההגרלה (🎲)
+  $('randomRulesBtn').addEventListener('click', doRandomRules);
+  $('randomEcologyBtn').addEventListener('click', doRandomEcology);
 
   // מהירות
   for (const btn of document.querySelectorAll('[data-speed]')) {
