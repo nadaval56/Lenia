@@ -5,11 +5,11 @@
  * הרינדור (render.js), הקטלוג (catalog.js) ומפת הפאזה (phasemap.js).
  */
 
-import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js';
-import { Renderer, PALETTES } from './render.js';
-import { PhaseMap } from './phasemap.js';
-import { CREATURES } from './creatures.js';
-import * as catalog from './catalog.js';
+import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=4';
+import { Renderer, PALETTES } from './render.js?v=4';
+import { PhaseMap } from './phasemap.js?v=4';
+import { CREATURES } from './creatures.js?v=4';
+import * as catalog from './catalog.js?v=4';
 
 /* ================= הגדרות כלליות ================= */
 
