@@ -84,6 +84,22 @@ function compose(w, h, placements) {
  * רשימת היצורים המובנים.
  * כל רשומה: name (לתצוגה), description (טיפ לילד), params, seed.
  */
+/**
+ * יצירת "כתם רך" עגול — דיסק עם קצוות דוהים (כמו המברשת).
+ * משמש כזרע של "הפרח הפורח": ב‑σ גמיש, כתם כזה פורח למושבה שלמה.
+ */
+function diskSeed(radius) {
+  const s = 2 * radius + 1;
+  const cells = new Float32Array(s * s);
+  for (let y = 0; y < s; y++) {
+    for (let x = 0; x < s; x++) {
+      const d2 = ((x - radius) ** 2 + (y - radius) ** 2) / (radius * radius);
+      if (d2 <= 1) cells[y * s + x] = Math.exp(-d2 * 3);
+    }
+  }
+  return { w: s, h: s, cells };
+}
+
 const ORBIUM_SEED = seedFromRows(ORBIUM_CELLS);
 
 export const CREATURES = [
@@ -107,12 +123,42 @@ export const CREATURES = [
     ]),
   },
   {
+    id: 'school',
+    name: 'הלהקה 🐠',
+    description: 'שלושה אורביומים שוחים יחד במבנה, כמו להקת דגים. הם לעולם לא יתנגשו — כולם שוחים באותה מהירות בדיוק, לאותו כיוון.',
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10 },
+    // שלושה עותקים באותו כיוון — מהירות זהה ⇒ המרחק ביניהם נשמר לנצח.
+    // המרווח (34 תאים באלכסון) אומת: מסה קבועה של פי 3 לאורך 900+ דורות.
+    seed: compose(88, 88, [
+      { seed: ORBIUM_SEED, x: 0, y: 0 },
+      { seed: ORBIUM_SEED, x: 34, y: 34 },
+      { seed: ORBIUM_SEED, x: 68, y: 68 },
+    ]),
+  },
+  {
+    id: 'flower',
+    name: 'הפרח הפורח 🌸',
+    description: 'מכתם עגול אחד קטן... פורח עולם שלם! כש‑σ גמיש יותר, גם התחלה צנועה מצליחה לצמוח.',
+    params: { mu: 0.15, sigma: 0.03, R: 13, T: 10 },
+    seed: diskSeed(8),
+  },
+  {
     id: 'boiling',
     name: 'המושבה הרותחת 🫧',
     description: 'מרק שלא נרדם! כשהזמן T קטן, העולם נשאר רותח ומשתנה לנצח. כל לחיצה — עולם חדש.',
     params: { mu: 0.15, sigma: 0.017, R: 13, T: 3 },
     // בלי seed קבוע: הניסוי הזה נזרע ממרק אקראי טרי בכל הפעלה.
     soup: { density: 0.5 },
+  },
+  {
+    id: 'greenhouse',
+    name: 'חממת הציורים 🎨',
+    description: 'עולם ריק עם חוק סלחני במיוחד — כל מה שתציירו באצבע (בקו עבה!) יקום לתחייה ויפרח. נסו לצייר לב.',
+    params: { mu: 0.15, sigma: 0.035, R: 13, T: 10 },
+    // בלי seed ובלי מרק — העולם נשאר ריק ומחכה לציור של הילד.
+    // המברשת מוגדלת אוטומטית ל‑9: קווים דקים מדי מתים גם כאן (נבדק).
+    brush: 9,
+    toastMsg: 'העולם מחכה לכם — ציירו באצבע, וכשתרימו אותה הציור יתעורר לחיים! 🎨',
   },
 ];
 

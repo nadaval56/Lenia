@@ -37,6 +37,33 @@ h1 { margin: 0; font-size: 2rem; }
 h2 { font-size: 1.2rem; margin: 0 0 12px; }
 h3 { font-size: 1rem; margin: 14px 0 8px; }
 
+/* ---------- הסיפור ---------- */
+
+.story-wrap {
+  max-width: 1100px;
+  margin: 10px auto 0;
+  padding: 0 14px;
+}
+.story {
+  background: linear-gradient(135deg, var(--panel), #1a2438);
+  border: 1px solid #2b3650;
+  border-radius: var(--radius);
+  padding: 12px 18px;
+}
+.story summary {
+  font-size: 1.05rem;
+  font-weight: 700;
+  min-height: 40px;
+}
+.story p { font-size: 0.95rem; margin: 8px 0; }
+.story .story-law {
+  background: rgba(52, 199, 118, 0.1);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
 main {
   display: grid;
   grid-template-columns: minmax(320px, 620px) minmax(280px, 380px);
@@ -187,6 +214,30 @@ input[type="range"]::-moz-range-thumb {
   background: var(--accent);
   border: 3px solid #0d1117;
 }
+
+/* הסבר מורחב מתחת לכל סליידר */
+.param-more {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  margin-top: 2px;
+}
+.param-more summary {
+  font-size: 0.8rem;
+  color: var(--accent-2);
+  font-weight: 500;
+  min-height: 28px;
+}
+.param-more p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 6px 0;
+}
+.param-more em { color: var(--text); font-style: normal; font-weight: 600; }
 
 /* ---------- מפת הפאזה ---------- */
 

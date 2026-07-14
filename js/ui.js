@@ -209,6 +209,7 @@ function toast(msg) {
 function setupBrush() {
   const canvas = $('world');
   let drawing = false;
+  let wasRunning = false;
 
   const paint = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -220,13 +221,21 @@ function setupBrush() {
   canvas.addEventListener('pointerdown', (e) => {
     drawing = true;
     canvas.setPointerCapture(e.pointerId);
+    // בזמן ציור העולם "עוצר את נשימתו" — אחרת הקצה של הקו מתחיל
+    // לדעוך עוד לפני שמסיימים לצייר (תא מלא נמוג תוך ~T פריימים).
+    // כשמרימים את האצבע, הציור מתעורר לחיים בבת אחת.
+    wasRunning = running;
+    if (running) setRunning(false);
     paint(e);
     e.preventDefault();
   });
   canvas.addEventListener('pointermove', (e) => {
     if (drawing) { paint(e); e.preventDefault(); }
   });
-  const stop = () => { drawing = false; };
+  const stop = () => {
+    if (drawing && wasRunning) setRunning(true);
+    drawing = false;
+  };
   canvas.addEventListener('pointerup', stop);
   canvas.addEventListener('pointercancel', stop);
 }
@@ -256,19 +265,32 @@ function setupPhaseMapInput() {
 
 /**
  * טעינת יצור או ניסוי לעולם.
- * @param {{params:object, seed?:object, soup?:{density:number}, name?:string}} entry
+ * @param {{params:object, seed?:object, soup?:{density:number}, brush?:number,
+ *          toastMsg?:string, name?:string}} entry
  * יצור רגיל מגיע עם seed (דפוס קבוע); "ניסוי מרק" (כמו המושבה הרותחת)
- * מגיע עם soup — ואז זורעים רעש אקראי טרי בכל הפעלה.
+ * מגיע עם soup — רעש אקראי טרי בכל הפעלה; ניסוי בלי שניהם (כמו חממת
+ * הציורים) משאיר עולם ריק. brush מכוון את גודל המברשת, toastMsg מחליף
+ * את הודעת ברירת המחדל.
  */
-function loadCreatureIntoWorld({ params, seed, soup, name }) {
+function loadCreatureIntoWorld({ params, seed, soup, brush, toastMsg, name }) {
   sim.setParams(params);
   sim.clear();
   if (seed) sim.placeSeed(seed);
   if (soup) sim.soup(soup.density);
+  if (brush) {
+    brushSize = brush;
+    $('brushSlider').value = brush;
+    $('brushValue').textContent = brush;
+    if (brushErase) {
+      brushErase = false;
+      $('brushMode').textContent = '✏️ צייר';
+    }
+  }
   massHistory.length = 0;
   syncSlidersFromParams();
   setRunning(true);
-  if (name) toast(`${name} שוחרר לעולם! 🌍`);
+  if (toastMsg) toast(toastMsg);
+  else if (name) toast(`${name} שוחרר לעולם! 🌍`);
 }
 
 /** בניית כפתורי היצורים המובנים */
@@ -458,6 +480,13 @@ function init() {
 
   // רזולוציה
   $('resolutionSelect').addEventListener('change', (e) => setGridSize(parseInt(e.target.value, 10)));
+
+  // הסיפור: פתוח בביקור הראשון; אחרי שנסגר פעם — נשאר סגור בפעמים הבאות
+  const story = $('storyBox');
+  if (localStorage.getItem('lenia.storyClosed')) story.removeAttribute('open');
+  story.addEventListener('toggle', () => {
+    if (!story.open) localStorage.setItem('lenia.storyClosed', '1');
+  });
 
   setupBrush();
   setupPhaseMapInput();
