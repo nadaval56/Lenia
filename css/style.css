@@ -83,14 +83,22 @@ h3 { font-size: 1rem; margin: 14px 0 8px; }
   background: linear-gradient(135deg, var(--panel), #1a2438);
   border: 1px solid #2b3650;
   border-radius: var(--radius);
-  padding: 12px 18px;
+  padding: 14px 18px;
 }
-.story summary {
-  font-size: 1.05rem;
-  font-weight: 700;
-  min-height: 40px;
-}
+.story-title { font-size: 1.15rem; margin: 0 0 8px; }
 .story p { font-size: 0.95rem; margin: 8px 0; }
+.story-teaser { margin-top: 0; }
+.story-more { background: transparent; border: none; padding: 0; margin: 0; }
+.story-more > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.story-more[open] > summary { margin-bottom: 4px; }
 .story .story-law {
   background: rgba(52, 199, 118, 0.1);
   border-inline-start: 3px solid var(--accent);
