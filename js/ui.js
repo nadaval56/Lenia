@@ -5,12 +5,12 @@
  * הרינדור (render.js), הקטלוג (catalog.js) ומפת הפאזה (phasemap.js).
  */
 
-import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=8';
-import { LeniaMulti } from './multi.js?v=8';
-import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=8';
-import { PhaseMap } from './phasemap.js?v=8';
-import { CREATURES } from './creatures.js?v=8';
-import * as catalog from './catalog.js?v=8';
+import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=9';
+import { LeniaMulti } from './multi.js?v=9';
+import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=9';
+import { PhaseMap } from './phasemap.js?v=9';
+import { CREATURES } from './creatures.js?v=9';
+import * as catalog from './catalog.js?v=9';
 
 /* ================= הגדרות כלליות ================= */
 
@@ -186,6 +186,207 @@ function syncSlidersFromParams() {
   phaseMap.setKernelType(sim.kernelType);
 }
 
+/* ================= פופ־אפ עזרה (❓) ================= */
+
+/**
+ * מאגר ההסברים לכל סליידר/פקד. כל ערך: כותרת + גוף HTML.
+ * נפתח בפופ־אפ בלחיצה על כפתור ה‑❓ הקטן שליד כל פקד.
+ */
+const HELP = {
+  mu: {
+    title: 'μ — צפיפות מועדפת',
+    body: `<p>לכל תא יש "צפיפות חלומית" — כמו הדייסה של זהבה: לא ריק מדי, לא צפוף
+      מדי, בדיוק באמצע. <strong>μ הוא המספר הזה.</strong> כל תא בודק כמה חיים יש
+      בטבעת סביבו: אם התוצאה קרובה ל‑μ — הוא גדל, אחרת הוא נחלש.</p>
+      <p>μ גבוה ⇐ היצורים אוהבים צפיפות ⇐ עולם דחוס. μ נמוך ⇐ עולם מאוורר ועדין.</p>
+      <p class="help-try">💡 נסו: טענו את האורביום והזיזו את μ טיפ־טיפה. כמה רחוק
+      תגיעו לפני שהוא מתפרק?</p>`,
+  },
+  sigma: {
+    title: 'σ — גמישות החוק',
+    body: `<p>σ קובע כמה <strong>סלחני</strong> החוק. דמיינו שופט: σ זעיר = שופט
+      קפדן שמקבל רק "בדיוק μ!" — כמעט אף תא לא עומד בזה, והכול דועך 🕳️. σ ענק =
+      שופט שמרשה הכול — הכול גדל בלי שליטה ומתפוצץ לרעש 🔥.</p>
+      <p><strong>זה הסליידר החשוב ביותר במשחק.</strong> החיים מסתתרים ברצועה צרה
+      באמצע — תראו אותה במפת אזור החיים.</p>
+      <p class="help-try">💡 נסו: זרעו מרק וגררו את σ לאט מקצה לקצה. תרגישו איפה
+      עובר הגבול בין קיפאון, חיים וכאוס.</p>`,
+  },
+  kernel: {
+    title: '🔭 צורת המשקפיים',
+    body: `<p>כל תא מסתכל על שכניו דרך "משקפיים" בצורת טבעות. μ ו‑σ הם
+      <strong>חוזק</strong> החוק — הבורר הזה משנה את <strong>צורת הראייה</strong>
+      עצמה, וזה משנה הכול: לכל משקפיים יש "כתב יד" משלהם.</p>
+      <p>⭕ טבעת אחת ⇐ נקודות שמנמנות (והאורביום!) · 🌊 שתי טבעות ⇐ פסים גליים ·
+      ✨ שלוש טבעות ⇐ אבק עדין · 🧭 טבעת עם רוח ⇐ כל העולם נסחף לכיוון אחד!</p>
+      <p class="help-try">💡 יצור שנולד במשקפיים אחדות מתפרק באחרות — ומפת אזור
+      החיים מתחלפת גם היא.</p>`,
+  },
+  R: {
+    title: 'R — טווח ראייה',
+    body: `<p>R הוא רדיוס הטבעת שדרכה כל תא רואה — עד כמה רחוק הוא מסתכל. R גדול ⇐
+      יצורים גדולים, R קטן ⇐ יצורים קטנים וזריזים יותר.</p>
+      <p class="help-try">💡 שימו לב: היצורים המפורסמים (כמו האורביום) נבנו בשביל
+      R=13 בדיוק. אם תשנו R אחרי שטענתם אותם — הם יתפרקו. מרק אקראי עובד בכל R!</p>`,
+  },
+  T: {
+    title: 'T — חלקוּת',
+    body: `<p>בכל פריים העולם משתנה רק "צעד אחד חלקי T" — אז T הוא מידת הזהירות.
+      T גדול ⇐ צעדים זעירים ⇐ תנועה חלקה ורגועה. T קטן ⇐ קפיצות גדולות ⇐ עולם
+      עצבני שלא נרגע.</p>
+      <p class="help-try">💡 נסו את "המושבה הרותחת 🫧" — אותו עולם כמו מרק רגיל,
+      רק עם T=3. ההבדל מדהים.</p>`,
+  },
+  density: {
+    title: 'צפיפות המרק',
+    body: `<p>כשלוחצים 🥣 "מרק אקראי", העולם מתמלא בנקודות מקריות. הסליידר הזה
+      קובע כמה צפוף הרעש הזה — הרבה נקודות או מעט.</p>
+      <p class="help-try">💡 לפעמים מרק דליל דווקא מוליד יצורים יפים יותר ממרק
+      צפוף. שווה לנסות את שניהם.</p>`,
+  },
+  boundary: {
+    title: '🌍 צורת העולם',
+    body: `<p>🍩 <strong>עולם עגול</strong>: אין קצה — מי שיוצא מצד אחד נכנס מהצד
+      השני, כמו במשחק "נחש". יצורים יכולים לשחות לנצח.</p>
+      <p>🧱 <strong>אקווריום</strong>: יש קירות אמיתיים. ליד הקיר תא רואה פחות
+      שכנים — וקשה יותר לחיות שם. יצור ששוחה אל הקיר עלול להימחץ.</p>
+      <p class="help-try">💡 טענו את "האקווריום 🐠" וצפו באורביום שוחה אל הפינה.</p>`,
+  },
+  // הסבר כללי לפאנל החוקים הצבעוני
+  rules: {
+    title: '🎨 חוקי העולם הצבעוני',
+    body: `<p>בעולם צבעוני יש כמה "חומרים" (צבעים), ולכל חומר יכולים להיות חוקים
+      שקושרים אותו לחומרים אחרים. כל שורה בפאנל היא <strong>חוק אחד</strong>:</p>
+      <p>🟢 <strong>μ</strong> — באיזו צפיפות של החומר המשפיע החוק "מתעורר".<br>
+      🟢 <strong>σ</strong> — כמה גמיש החוק (כמו בעולם הרגיל).<br>
+      🟢 <strong>h</strong> — עוצמת ההשפעה: <strong>חיובי מעודד</strong> (עוזר
+      לגדול), <strong>שלילי מדכא</strong> (הורג).</p>
+      <p class="help-try">💡 גררו את h של חוק "מדכא" לכיוון האפס — ותראו את הטורף
+      מפסיק לצוד. הכול חי ומגיב מיד!</p>`,
+  },
+};
+
+/** פתיחת פופ־אפ העזרה עבור מפתח נתון */
+function openHelp(key) {
+  const h = HELP[key];
+  if (!h) return;
+  $('helpTitle').textContent = h.title;
+  $('helpBody').innerHTML = h.body;
+  $('helpDialog').showModal();
+}
+
+/* ================= קוביית הרב־תחומיות ================= */
+
+/**
+ * לכל תחום — איך לניה נוגעת בו, ו"נקודה למחשבה" לדיון בכיתה.
+ * נפתח בלחיצה על אריח בקוביית התחומים שבתחתית העמוד.
+ */
+const SUBJECTS = [
+  {
+    emoji: '🔢', name: 'מתמטיקה',
+    body: `<p>כל מה שאתם רואים על המסך הוא <strong>משוואה אחת</strong> שרצה שוב ושוב:
+      קונבולוציה (סכום משוקלל של שכנים) ופעמון גאוסי. אין "קוד" ליצורים — יש נוסחה.</p>
+      <p>זו דוגמה חיה ל<strong>התהוות (emergence)</strong>: מורכבות עשירה שנולדת מכללים
+      פשוטים, אחד התחומים המרתקים במתמטיקה המודרנית.</p>
+      <p class="help-try">🤔 למחשבה: איך ייתכן שנוסחה קצרה שאפשר לכתוב בשורה אחת
+      יוצרת יצור ששוחה, נלחם ומתחלק? היכן ה"מידע" על היצור מסתתר?</p>`,
+  },
+  {
+    emoji: '🧬', name: 'ביולוגיה',
+    body: `<p>האורביום מתנהג כמו <strong>תא חי בודד</strong>: יש לו קרום (הקצה), הוא
+      שומר על צורתו למרות הפרעות (הומאוסטזיס — בדיוק מה שמחוון המסה מודד!), ולפעמים
+      אף מתחלק.</p>
+      <p>עקרון "השמירה על האיזון" — לא ריק מדי, לא צפוף מדי — הוא הלב של כל תא חי
+      בגופכם ברגע זה.</p>
+      <p class="help-try">🤔 למחשבה: מה הופך משהו ל"חי"? האם אורביום ששומר על עצמו,
+      נע ומגיב לסביבה — חי? ומה חסר לו?</p>`,
+  },
+  {
+    emoji: '🌿', name: 'אקולוגיה',
+    body: `<p>העולם הצבעוני "המרדף הגדול" הוא מודל <strong>טורף–נטרף</strong> אמיתי:
+      הירוק (נטרף) חי בכוחות עצמו, האדום (טורף) ניזון ממנו והורג אותו.</p>
+      <p>התוצאה — <strong>מחזורי אוכלוסייה</strong>: כשיש הרבה נטרף, הטורפים משגשגים,
+      אוכלים יותר מדי, ואז קורסים בעצמם. בדיוק כמו שועלים וארנבות בטבע (משוואות
+      לוטקה–וולטרה).</p>
+      <p class="help-try">🤔 למחשבה: מה קורה אם הטורף חזק מדי? צפו — לרוב הוא הורג את
+      כל המזון שלו... ואז מת בעצמו. מה זה מלמד על שיווי משקל בטבע?</p>`,
+  },
+  {
+    emoji: '💻', name: 'מדעי המחשב',
+    body: `<p>לניה היא <strong>אוטומט תאי</strong> — קרובת משפחה של "משחק החיים" של
+      קונוויי (1970), אחד הרעיונות המכוננים של מדעי המחשב.</p>
+      <p>זהו תחום שנקרא <strong>חיים מלאכותיים (Artificial Life)</strong>: לחקור חיים
+      לא על ידי הסתכלות בטבע, אלא על ידי בנייתם מאפס בתוך המחשב.</p>
+      <p class="help-try">🤔 למחשבה: אם אפשר "לחשב" חיים, האם המוח שלכם הוא בעצם
+      מחשב? והאם מחשב יוכל אי־פעם להיות חי באמת?</p>`,
+  },
+  {
+    emoji: '✨', name: 'פילוסופיה ותיאולוגיה',
+    body: `<p>בעולם הזה נבראים "יצורים" מתוך <strong>חוק אחד</strong>, בלי שאיש צייר
+      אותם. זה נוגע לשאלות עתיקות: האם צריך "מתכנן" כדי שייווצר סדר? או שסדר יכול
+      לצוץ לבד מתוך כללים?</p>
+      <p>ה"כוונון העדין" מרתק: החיים אפשריים רק ברצועה צרה מאוד של פרמטרים —
+      "קצה הכאוס". יש שרואים בכך מטאפורה, ויש שרואים בכך שאלה עמוקה על היקום שלנו.</p>
+      <p class="help-try">🤔 למחשבה: הכול כאן נקבע מראש על ידי חוק (דטרמיניזם) —
+      ובכל זאת היצורים נראים כאילו יש להם "רצון". מה זה אומר על בחירה חופשית?</p>`,
+  },
+  {
+    emoji: '⚛️', name: 'פיזיקה',
+    body: `<p>מפת אזור החיים היא <strong>דיאגרמת מופעים (phase diagram)</strong> —
+      בדיוק כמו זו שמתארת מים שהופכים לקרח או לאדים. יש "מופע" של דעיכה, מופע של
+      כאוס, ורצועת מעבר ביניהם.</p>
+      <p>"קצה הכאוס" הוא <strong>נקודה קריטית</strong> — כמו הרגע המדויק שבו חומר
+      משנה מצב. שם, ורק שם, נוצרת המורכבות המעניינת.</p>
+      <p class="help-try">🤔 למחשבה: למה דווקא ב"קצה" בין סדר לכאוס קורים הדברים
+      המעניינים? האם גם המוח, החברה והמוזיקה חיים על קצה כזה?</p>`,
+  },
+  {
+    emoji: '🧠', name: 'חקר המוח',
+    body: `<p>העולם "הגחליליות" בנוי מ<strong>עידוד מקרוב ודיכוי מרחוק</strong> — בדיוק
+      איך שנוירונים במוח עובדים: תא מעורר את שכניו הקרובים ומדכא את הרחוקים.</p>
+      <p>אותו עיקרון יוצר את <strong>דפוסי טיורינג</strong> בטבע: פסי הזברה, כתמי
+      הנמר, וצורות על קונכיות — כולם נולדים מהאיזון הזה בין עידוד לדיכוי.</p>
+      <p class="help-try">🤔 למחשבה: אותו חוק פשוט מסביר גם דפוס על גב חיה וגם איך
+      מחשבים דברים במוח. למה הטבע "ממחזר" את אותו רעיון שוב ושוב?</p>`,
+  },
+  {
+    emoji: '🎨', name: 'אמנות',
+    body: `<p>לניה היא <strong>אמנות גנרטיבית</strong>: יופי שנוצר לא על ידי אמן שמצייר
+      כל פרט, אלא על ידי אלגוריתם שמגדל אותו. האמן בוחר את החוקים — היצירה מפתיעה גם
+      אותו.</p>
+      <p>פלטות הצבע, הפלואידיות של התנועה, ודוגמאות "שדה הגלים" — כולן שאלות של
+      אסתטיקה שנפגשת עם מתמטיקה.</p>
+      <p class="help-try">🤔 למחשבה: אם מחשב יצר משהו יפה שאף אחד לא תכנן במדויק —
+      של מי היצירה? של מי שכתב את החוק, או של המקריות?</p>`,
+  },
+  {
+    emoji: '🌍', name: 'פילוסופיה של המדע',
+    body: `<p>לניה היא <strong>מודל</strong> — ייצוג פשוט של משהו מורכב. מדענים בונים
+      מודלים כדי להבין את העולם, אבל מודל אף פעם אינו המציאות עצמה.</p>
+      <p>היצורים כאן אינם "חיים אמיתיים", אבל הם מלמדים אותנו משהו אמיתי על מה שהחיים
+      <em>יכולים</em> להיות — וזה בדיוק הכוח של מודל טוב.</p>
+      <p class="help-try">🤔 למחשבה: מה מודל יכול ללמד אותנו שהמציאות עצמה לא?
+      ומתי מודל "פשוט מדי" עלול דווקא להטעות אותנו?</p>`,
+  },
+];
+
+/** בניית קוביית התחומים */
+function renderSubjects() {
+  const grid = $('subjectGrid');
+  grid.innerHTML = '';
+  SUBJECTS.forEach((s, i) => {
+    const tile = document.createElement('button');
+    tile.className = 'subject-tile';
+    tile.innerHTML = `<span class="subject-emoji">${s.emoji}</span><span>${s.name}</span>`;
+    tile.addEventListener('click', () => {
+      $('helpTitle').textContent = `${s.emoji} לניה ו${s.name}`;
+      $('helpBody').innerHTML = s.body;
+      $('helpDialog').showModal();
+    });
+    grid.appendChild(tile);
+  });
+}
+
 /* ================= שני העולמות (טאבים) ================= */
 
 // לאיזה מצב שייך יצור/רשומה: עולם עם רשת חיבורים = 'color', אחרת 'simple'.
@@ -290,7 +491,8 @@ function buildMultiRules() {
   panel.innerHTML = '';
   const intro = document.createElement('p');
   intro.className = 'rules-intro';
-  intro.textContent = '🎨 חוקי העולם הצבעוני — גררו כדי לכוונן חי:';
+  intro.innerHTML = '🎨 חוקי העולם הצבעוני — גררו כדי לכוונן חי '
+    + '<button type="button" class="help-btn" data-help="rules" aria-label="הסבר על חוקי העולם הצבעוני">?</button>';
   panel.appendChild(intro);
 
   sim.connections.forEach((conn) => {
@@ -328,18 +530,22 @@ function makeRandomEcology() {
   const C = Math.random() < 0.5 ? 2 : 3;
   const R = 8 + Math.floor(Math.random() * 6);   // 8..13
   const T = 8 + Math.floor(Math.random() * 5);   // 8..12
-  const nConn = C + Math.floor(Math.random() * (C + 1)); // C..2C
   const connections = [];
 
-  // חובה: חיבור עצמי מעודד (חומר שיודע לחיות בכוחות עצמו)
-  const selfCh = Math.floor(Math.random() * C);
-  connections.push({ src: selfCh, dst: selfCh, mu: randRange(0.10, 0.30), sigma: randRange(0.02, 0.06), h: randRange(0.5, 1) });
-  // חובה: חיבור מדכא (מישהו שמפריע למישהו)
-  const a = Math.floor(Math.random() * C), b = Math.floor(Math.random() * C);
+  // כל חומר מקבל חיבור עצמי מעודד — כך אין "צבע מת" שאפשר לצייר בו
+  // אבל אין לו שום חוק. כל צבע שקיים בבורר המברשת הוא חומר אמיתי.
+  for (let c = 0; c < C; c++) {
+    connections.push({ src: c, dst: c, mu: randRange(0.10, 0.30), sigma: randRange(0.02, 0.06), h: randRange(0.5, 1) });
+  }
+  // חובה: חיבור מדכא בין שני חומרים שונים (מישהו שמפריע למישהו)
+  let a = Math.floor(Math.random() * C), b = (a + 1 + Math.floor(Math.random() * (C - 1))) % C;
   connections.push({ src: a, dst: b, mu: randRange(0.10, 0.35), sigma: randRange(0.02, 0.08), h: -randRange(0.3, 1), unit: Math.random() < 0.5 });
-  // שאר החיבורים — חופשיים לגמרי
-  while (connections.length < nConn) {
-    connections.push({ src: Math.floor(Math.random() * C), dst: Math.floor(Math.random() * C), mu: randRange(0.10, 0.35), sigma: randRange(0.02, 0.08), h: randRange(-1, 1) });
+  // עוד 1..C חיבורים חופשיים בין חומרים שונים (יחסים מפתיעים)
+  const extra = 1 + Math.floor(Math.random() * C);
+  for (let i = 0; i < extra; i++) {
+    const src = Math.floor(Math.random() * C);
+    const dst = (src + 1 + Math.floor(Math.random() * (C - 1))) % C; // dst ≠ src
+    connections.push({ src, dst, mu: randRange(0.10, 0.35), sigma: randRange(0.02, 0.08), h: randRange(-1, 1), unit: Math.random() < 0.4 });
   }
   return { C, R, T, connections };
 }
@@ -389,18 +595,26 @@ function doRandomRules() {
   toast(`הגרלנו חוקים! 🎲 ${KERNEL_TYPES[kt].name}`);
 }
 
-/** בניית כפתורי בחירת "חומר" למברשת, לפי מספר הערוצים בעולם */
-function buildChannelPicker(C) {
+/**
+ * בניית כפתורי בחירת "חומר" למברשת. מציגים רק חומרים שיש להם חוק
+ * (מופיעים באיזשהו חיבור) — כדי שלא יהיה צבע שאפשר לצייר בו אבל אין
+ * לו שום התנהגות.
+ */
+function buildChannelPicker(config) {
   const picker = $('channelPicker');
   picker.innerHTML = '';
-  brushChannel = 0;
-  picker.hidden = C < 2; // בעולם עם חומר אחד אין מה לבחור
-  for (let c = 0; c < C; c++) {
+  // אילו ערוצים משתתפים בכלל בחוקים (כמקור או כיעד)
+  const used = new Set();
+  for (const conn of config.connections) { used.add(conn.src); used.add(conn.dst); }
+  const channels = [...Array(config.C).keys()].filter((c) => used.has(c));
+  brushChannel = channels[0] ?? 0;
+  picker.hidden = channels.length < 2; // חומר אחד — אין מה לבחור
+  channels.forEach((c, i) => {
     const btn = document.createElement('button');
     const [r, g, b] = CHANNEL_COLORS[c % CHANNEL_COLORS.length];
     btn.textContent = CHANNEL_NAMES[c] ?? `חומר ${c + 1}`;
     btn.style.borderColor = `rgb(${r},${g},${b})`;
-    if (c === 0) btn.classList.add('active');
+    if (i === 0) btn.classList.add('active');
     btn.addEventListener('click', () => {
       brushChannel = c;
       if (brushErase) {
@@ -410,7 +624,7 @@ function buildChannelPicker(C) {
       picker.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === btn));
     });
     picker.appendChild(btn);
-  }
+  });
 }
 
 /* ================= פעולות ================= */
@@ -542,7 +756,7 @@ function loadCreatureIntoWorld({ params, seed, soup, brush, toastMsg, name, mult
     const cfg = structuredClone(multi);
     sim = new LeniaMulti(gridSize, gridSize, cfg);
     setMultiMode(true);
-    buildChannelPicker(cfg.C);
+    buildChannelPicker(cfg);
     buildMultiRules(); // פאנל החוקים החי מותאם לחיבורים של העולם הזה
   } else {
     if (isMulti) {
@@ -756,6 +970,13 @@ function init() {
     tab.addEventListener('click', () => switchMode(tab.dataset.mode));
   }
 
+  // פופ־אפ עזרה: לחיצה על כל כפתור ❓ בעמוד (גם כאלה שנבנים דינמית)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.help-btn');
+    if (btn) { e.preventDefault(); openHelp(btn.dataset.help); }
+  });
+  $('helpClose').addEventListener('click', () => $('helpDialog').close());
+
   // מהירות
   for (const btn of document.querySelectorAll('[data-speed]')) {
     btn.addEventListener('click', () => {
@@ -818,6 +1039,7 @@ function init() {
   setupImportExport();
   renderBuiltinCreatures();
   renderGallery();
+  renderSubjects();
   syncSlidersFromParams();
 
   // פתיחה עם "וואו": האורביום שוחה מהשנייה הראשונה

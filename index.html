@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>סייר לניה — מעבדת חיים מלאכותיים</title>
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=9">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦠</text></svg>">
 </head>
 <body>
@@ -128,79 +128,38 @@
       <div id="singleRules">
       <div class="param main-param">
         <label for="muSlider">
-          <strong>μ — צפיפות מועדפת</strong>
+          <strong>μ — צפיפות מועדפת
+            <button type="button" class="help-btn" data-help="mu" aria-label="הסבר על μ">?</button>
+          </strong>
           <span class="kid-hint">כמה צפוף צריך להיות כדי לגדול</span>
         </label>
         <div class="slider-row">
           <input type="range" id="muSlider" min="0.10" max="0.35" step="0.001" value="0.15">
           <output id="muValue">0.150</output>
         </div>
-        <details class="param-more">
-          <summary>🤔 מה זה באמת עושה?</summary>
-          <p>
-            לכל תא יש "צפיפות חלומית" — כמו הדייסה של זהבה: לא ריק מדי, לא
-            צפוף מדי, בדיוק באמצע. <strong>μ הוא המספר הזה.</strong>
-            כל תא בודק כמה חיים יש בטבעת סביבו: אם התוצאה קרובה ל‑μ — הוא
-            גדל, אחרת הוא נחלש.
-          </p>
-          <p>
-            μ גבוה ⇐ היצורים אוהבים צפיפות ⇐ עולם דחוס ומלא יותר.
-            μ נמוך ⇐ עולם מאוורר ועדין.
-            <em>נסו: טענו את האורביום והזיזו את μ טיפ־טיפה. כמה רחוק תגיעו
-            לפני שהוא מתפרק?</em>
-          </p>
-        </details>
       </div>
 
       <div class="param main-param">
         <label for="sigmaSlider">
-          <strong>σ — גמישות החוק</strong>
+          <strong>σ — גמישות החוק
+            <button type="button" class="help-btn" data-help="sigma" aria-label="הסבר על σ">?</button>
+          </strong>
           <span class="kid-hint">כמה סטייה מהצפיפות המועדפת עדיין מותרת</span>
         </label>
         <div class="slider-row">
           <input type="range" id="sigmaSlider" min="0.005" max="0.10" step="0.001" value="0.017">
           <output id="sigmaValue">0.017</output>
         </div>
-        <details class="param-more">
-          <summary>🤔 מה זה באמת עושה?</summary>
-          <p>
-            σ קובע כמה <strong>סלחני</strong> החוק. דמיינו שופט:
-            σ זעיר = שופט קפדן שמקבל רק "בדיוק μ!" — כמעט אף תא לא עומד
-            בזה, והכול דועך 🕳️. σ ענק = שופט שמרשה הכול — הכול גדל בלי
-            שליטה ומתפוצץ לרעש 🔥.
-          </p>
-          <p>
-            <strong>זה הסליידר החשוב ביותר במשחק.</strong> החיים מסתתרים
-            ברצועה צרה באמצע — תסתכלו על מפת אזור החיים למטה ותראו אותה.
-            <em>נסו: זרעו מרק וגררו את σ לאט מקצה לקצה. תרגישו בדיוק איפה
-            עובר הגבול בין קיפאון, חיים וכאוס.</em>
-          </p>
-        </details>
       </div>
 
       <div class="param">
         <label for="kernelSelect">
-          <strong>🔭 צורת המשקפיים</strong>
+          <strong>🔭 צורת המשקפיים
+            <button type="button" class="help-btn" data-help="kernel" aria-label="הסבר על צורת המשקפיים">?</button>
+          </strong>
           <span class="kid-hint">איך כל תא רואה את שכניו — משנה איזה עולם בכלל אפשרי</span>
         </label>
         <select id="kernelSelect" class="kernel-select"></select>
-        <details class="param-more">
-          <summary>🤔 מה זה באמת עושה?</summary>
-          <p>
-            כל תא מסתכל על שכניו דרך "משקפיים" בצורת טבעות. עד עכשיו שיחקתם
-            רק עם <strong>חוזק</strong> החוק (μ, σ) — הבורר הזה משנה את
-            <strong>צורת הראייה</strong> עצמה, וזה משנה הכול: לכל משקפיים
-            יש "כתב יד" משלהם.
-          </p>
-          <p>
-            ⭕ טבעת אחת ⇐ נקודות שמנמנות (והאורביום!) ·
-            🌊 שתי טבעות ⇐ פסים גליים ·
-            ✨ שלוש טבעות ⇐ אבק עדין ·
-            🧭 טבעת עם רוח ⇐ ראייה מוטה לכיוון אחד, וכל העולם נסחף!
-            <em>שימו לב: יצור שנולד במשקפיים אחדות מתפרק באחרות — ומפת
-            אזור החיים מתחלפת גם היא, כי לכל עולם יש מפה משלו.</em>
-          </p>
-        </details>
       </div>
 
       <div class="phase-wrap">
@@ -225,55 +184,35 @@
 
         <div class="param">
           <label for="rSlider">
-            <strong>R — טווח ראייה</strong>
+            <strong>R — טווח ראייה
+              <button type="button" class="help-btn" data-help="R" aria-label="הסבר על R">?</button>
+            </strong>
             <span class="kid-hint">כמה רחוק כל תא רואה (גודל היצור)</span>
           </label>
           <div class="slider-row">
             <input type="range" id="rSlider" min="8" max="20" step="1" value="13">
             <output id="rValue">13</output>
           </div>
-          <details class="param-more">
-            <summary>🤔 מה זה באמת עושה?</summary>
-            <p>
-              כל תא מסתכל על השכנים דרך "משקפת" בצורת טבעת, ו‑R הוא רדיוס
-              הטבעת — עד כמה רחוק התא רואה. R גדול ⇐ יצורים גדולים,
-              R קטן ⇐ יצורים קטנים וזריזים יותר על המסך.
-            </p>
-            <p>
-              <em>שימו לב: היצורים המפורסמים (כמו האורביום) נבנו בשביל R=13
-              בדיוק. אם תשנו R אחרי שטענתם אותם — הם יתבלבלו ויתפרקו.
-              מרק אקראי, לעומת זאת, עובד בכל R!</em>
-            </p>
-          </details>
         </div>
 
         <div class="param">
           <label for="tSlider">
-            <strong>T — חלקוּת</strong>
+            <strong>T — חלקוּת
+              <button type="button" class="help-btn" data-help="T" aria-label="הסבר על T">?</button>
+            </strong>
             <span class="kid-hint">כמה חלקה ההנפשה (עדכון איטי יותר = חלק יותר)</span>
           </label>
           <div class="slider-row">
             <input type="range" id="tSlider" min="2" max="20" step="1" value="10">
             <output id="tValue">10</output>
           </div>
-          <details class="param-more">
-            <summary>🤔 מה זה באמת עושה?</summary>
-            <p>
-              בכל פריים העולם משתנה רק "צעד אחד חלקי T" — אז T הוא מידת
-              הזהירות. T גדול ⇐ צעדים זעירים ⇐ תנועה חלקה ורגועה, כמו
-              הליכה על קצות האצבעות. T קטן ⇐ קפיצות גדולות ⇐ עולם עצבני
-              שלא נרגע לעולם.
-            </p>
-            <p>
-              <em>נסו את "המושבה הרותחת 🫧" בספר המינים — זה בדיוק אותו עולם
-              כמו מרק רגיל, רק עם T=3. ההבדל מדהים.</em>
-            </p>
-          </details>
         </div>
 
         <div class="param">
           <label for="densitySlider">
-            <strong>צפיפות המרק</strong>
+            <strong>צפיפות המרק
+              <button type="button" class="help-btn" data-help="density" aria-label="הסבר על צפיפות המרק">?</button>
+            </strong>
             <span class="kid-hint">כמה רעש נזרע בלחיצה על "מרק אקראי"</span>
           </label>
           <div class="slider-row">
@@ -284,6 +223,7 @@
 
         <div class="selects">
           <label>🌍 צורת העולם
+            <button type="button" class="help-btn" data-help="boundary" aria-label="הסבר על צורת העולם">?</button>
             <select id="boundarySelect">
               <option value="torus" selected>🍩 עולם עגול (בלי קצה)</option>
               <option value="walls">🧱 אקווריום (עם קירות)</option>
@@ -368,16 +308,33 @@
     </form>
   </dialog>
 
+  <!-- ======== קוביית הרב־תחומיות ======== -->
+  <section class="subjects-cube">
+    <h2>🧩 לניה נוגעת בהכול</h2>
+    <p class="subjects-intro">
+      לניה היא לא רק משחק — היא חלון לעשרות תחומים. לחצו על נושא כדי לגלות
+      איך הוא מתחבר למה שראיתם כאן, עם נקודה למחשבה ולדיון.
+    </p>
+    <div id="subjectGrid" class="subject-grid"></div>
+  </section>
+
+  <!-- פופ־אפ עזרה משותף לכל הסליידרים -->
+  <dialog id="helpDialog" class="help-dialog">
+    <h3 id="helpTitle"></h3>
+    <div id="helpBody"></div>
+    <button id="helpClose" class="primary">הבנתי 👍</button>
+  </dialog>
+
   <div id="toast" class="toast"></div>
 
   <footer>
     <p>
       מבוסס על <a href="https://chakazul.github.io/lenia.html" target="_blank" rel="noopener">Lenia</a>
       של ברט צ'אן (Bert Chan) · הכול רץ אצלכם בדפדפן, שום דבר לא נשלח לאינטרנט
-      · גרסה 8
+      · גרסה 9
     </p>
   </footer>
 
-  <script type="module" src="js/ui.js?v=8"></script>
+  <script type="module" src="js/ui.js?v=9"></script>
 </body>
 </html>
