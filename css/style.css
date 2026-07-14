@@ -37,6 +37,41 @@ h1 { margin: 0; font-size: 2rem; }
 h2 { font-size: 1.2rem; margin: 0 0 12px; }
 h3 { font-size: 1rem; margin: 14px 0 8px; }
 
+/* ---------- טאבים: שני העולמות ---------- */
+
+.mode-tabs {
+  display: flex;
+  gap: 10px;
+  max-width: 1100px;
+  margin: 14px auto 0;
+  padding: 0 14px;
+}
+.mode-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--muted);
+  background: var(--panel);
+  border: 2px solid #2b3650;
+  border-radius: var(--radius);
+  transition: color .15s, border-color .15s, background .15s;
+}
+.mode-tab small { font-size: 0.72rem; font-weight: 400; }
+.mode-tab.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--panel), rgba(52,199,118,.12));
+}
+.mode-tab[data-mode="color"].active {
+  border-color: #e85042;
+  background: linear-gradient(135deg, rgba(70,230,140,.12), rgba(255,95,70,.12));
+}
+
 /* ---------- הסיפור ---------- */
 
 .story-wrap {

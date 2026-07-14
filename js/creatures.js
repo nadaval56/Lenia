@@ -15,7 +15,7 @@
  * יצור שנבנה לגרעין אחד מתפרק בגרעין אחר.
  */
 
-import { decodeSeed } from './catalog.js?v=7';
+import { decodeSeed } from './catalog.js?v=8';
 
 /**
  * Orbium unicaudatus — "המדוזה השוחה", היצור המפורסם ביותר של Lenia.

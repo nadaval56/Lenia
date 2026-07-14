@@ -5,12 +5,12 @@
  * הרינדור (render.js), הקטלוג (catalog.js) ומפת הפאזה (phasemap.js).
  */
 
-import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=7';
-import { LeniaMulti } from './multi.js?v=7';
-import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=7';
-import { PhaseMap } from './phasemap.js?v=7';
-import { CREATURES } from './creatures.js?v=7';
-import * as catalog from './catalog.js?v=7';
+import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=8';
+import { LeniaMulti } from './multi.js?v=8';
+import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=8';
+import { PhaseMap } from './phasemap.js?v=8';
+import { CREATURES } from './creatures.js?v=8';
+import * as catalog from './catalog.js?v=8';
 
 /* ================= הגדרות כלליות ================= */
 
@@ -25,6 +25,7 @@ const $ = (id) => document.getElementById(id);
 let gridSize = 128;
 let sim = new Lenia(gridSize, gridSize, { ...DEFAULTS });
 let isMulti = false;               // האם אנחנו בעולם רב־ערוצי (צבעוני)
+let currentMode = 'simple';        // הטאב הפעיל: 'simple' (עולם פשוט) / 'color' (צבעוני)
 let brushChannel = 0;              // באיזה "חומר" (ערוץ) המברשת מציירת
 let renderer;                      // נוצר ב‑init אחרי שה‑DOM מוכן
 let phaseMap;
@@ -183,6 +184,42 @@ function syncSlidersFromParams() {
   $('kernelSelect').value = sim.kernelType;
   $('boundarySelect').value = sim.boundary;
   phaseMap.setKernelType(sim.kernelType);
+}
+
+/* ================= שני העולמות (טאבים) ================= */
+
+// לאיזה מצב שייך יצור/רשומה: עולם עם רשת חיבורים = 'color', אחרת 'simple'.
+const entryMode = (x) => (x && x.multi ? 'color' : 'simple');
+
+// היצור הפותח של כל מצב (מה שנטען כשעוברים לטאב)
+const DEFAULT_CREATURE = { simple: 'orbium', color: 'hunt' };
+
+/**
+ * שיקוף מצב העולם הנוכחי בטאבים ובכפתורים — נקרא בכל טעינת עולם,
+ * כדי שהטאב הפעיל תמיד יתאים למה שרץ בפועל (בלי לטעון מחדש).
+ */
+function updateModeUI() {
+  currentMode = isMulti ? 'color' : 'simple';
+  for (const tab of document.querySelectorAll('.mode-tab')) {
+    tab.classList.toggle('active', tab.dataset.mode === currentMode);
+  }
+  // כפתור ההגרלה המתאים לכל מצב
+  $('randomRulesBtn').hidden = isMulti;
+  $('randomEcologyBtn').hidden = !isMulti;
+  $('builtinTitle').textContent = isMulti ? 'אקולוגיות מוכנות' : 'יצורים מפורסמים';
+}
+
+/**
+ * מעבר יזום בין הטאבים: טוען את היצור הפותח של המצב החדש
+ * ומסנן מחדש את ספריית היצורים והגלריה למצב הזה.
+ */
+function switchMode(mode) {
+  if (mode === currentMode) return;
+  const id = DEFAULT_CREATURE[mode];
+  const def = CREATURES.find((c) => c.id === id);
+  if (def) loadCreatureIntoWorld(def); // מגדיר isMulti ומעדכן את הטאבים
+  renderBuiltinCreatures();            // כעת מסונן לפי currentMode החדש
+  renderGallery();
 }
 
 /* ================= עולם צבעוני (רב־ערוצי) ================= */
@@ -398,9 +435,13 @@ function doClear() {
 
 function doReset() {
   if (isMulti) {
-    // איפוס מהעולם הצבעוני מחזיר לעולם הרגיל
-    sim = new Lenia(gridSize, gridSize, { ...DEFAULTS });
-    setMultiMode(false);
+    // בעולם צבעוני "איפוס" = מרק טרי לאותה אקולוגיה (נשארים באותו מצב)
+    sim.clear();
+    sim.soup(0.3, 0.6);
+    massHistory.length = 0;
+    setRunning(true);
+    toast('זרענו מרק חדש לאקולוגיה 🥣');
+    return;
   }
   sim.setParams({ ...DEFAULTS });
   syncSlidersFromParams();
@@ -526,16 +567,17 @@ function loadCreatureIntoWorld({ params, seed, soup, brush, toastMsg, name, mult
   }
   massHistory.length = 0;
   syncSlidersFromParams();
+  updateModeUI();  // הטאב הפעיל תמיד משקף את העולם שרץ
   setRunning(true);
   if (toastMsg) toast(toastMsg);
   else if (name) toast(`${name} שוחרר לעולם! 🌍`);
 }
 
-/** בניית כפתורי היצורים המובנים */
+/** בניית כפתורי היצורים המובנים — רק אלה של המצב הפעיל */
 function renderBuiltinCreatures() {
   const container = $('builtinCreatures');
   container.innerHTML = '';
-  for (const c of CREATURES) {
+  for (const c of CREATURES.filter((c) => entryMode(c) === currentMode)) {
     const btn = document.createElement('button');
     btn.className = 'creature-btn';
     btn.innerHTML = `<strong>${c.name}</strong><small>${c.description}</small>`;
@@ -544,10 +586,10 @@ function renderBuiltinCreatures() {
   }
 }
 
-/** רינדור גלריית הקטלוג האישי */
+/** רינדור גלריית הקטלוג האישי — רק תגליות של המצב הפעיל */
 function renderGallery() {
   const gallery = $('gallery');
-  const entries = catalog.loadCatalog();
+  const entries = catalog.loadCatalog().filter((e) => entryMode(e) === currentMode);
   gallery.innerHTML = '';
   $('emptyGallery').style.display = entries.length ? 'none' : 'block';
 
@@ -708,6 +750,11 @@ function init() {
   // כפתורי ההגרלה (🎲)
   $('randomRulesBtn').addEventListener('click', doRandomRules);
   $('randomEcologyBtn').addEventListener('click', doRandomEcology);
+
+  // טאבים: מעבר בין העולם הפשוט לצבעוני
+  for (const tab of document.querySelectorAll('.mode-tab')) {
+    tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+  }
 
   // מהירות
   for (const btn of document.querySelectorAll('[data-speed]')) {

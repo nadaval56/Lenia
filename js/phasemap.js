@@ -26,7 +26,7 @@
  * תא שערכו חסר (null) נדגם חי ברקע.
  */
 
-import { Lenia, classifyState, seededRandom, KERNEL_TYPES } from './lenia.js?v=7';
+import { Lenia, classifyState, seededRandom, KERNEL_TYPES } from './lenia.js?v=8';
 
 /** תצורת הדגימה — שינוי כאן מאלץ דגימה מחדש (דרך מפתח המטמון) */
 const CONFIG = {

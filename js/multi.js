@@ -24,7 +24,7 @@
  * הימנעויות, וטריטוריות — בלי שאף אחד תכנת אותן.
  */
 
-import { buildKernel, KERNEL_TYPES, seededRandom } from './lenia.js?v=7';
+import { buildKernel, KERNEL_TYPES, seededRandom } from './lenia.js?v=8';
 
 export class LeniaMulti {
   /**

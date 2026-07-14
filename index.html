@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>סייר לניה — מעבדת חיים מלאכותיים</title>
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦠</text></svg>">
 </head>
 <body>
@@ -48,6 +48,18 @@
         ושמרו על שמכם!
       </p>
     </details>
+  </div>
+
+  <!-- ======== בורר מצב: שני עולמות ======== -->
+  <div class="mode-tabs" role="tablist">
+    <button class="mode-tab active" data-mode="simple" role="tab">
+      🌱 עולם פשוט
+      <small>יצור אחד, צבע אחד</small>
+    </button>
+    <button class="mode-tab" data-mode="color" role="tab">
+      🌈 עולם צבעוני
+      <small>חומרים וחוקים מרובים</small>
+    </button>
   </div>
 
   <main>
@@ -318,7 +330,7 @@
       <h2>📖 ספר המינים</h2>
 
       <div class="builtin">
-        <h3>יצורים מפורסמים</h3>
+        <h3 id="builtinTitle">יצורים מפורסמים</h3>
         <div id="builtinCreatures"></div>
       </div>
 
@@ -362,10 +374,10 @@
     <p>
       מבוסס על <a href="https://chakazul.github.io/lenia.html" target="_blank" rel="noopener">Lenia</a>
       של ברט צ'אן (Bert Chan) · הכול רץ אצלכם בדפדפן, שום דבר לא נשלח לאינטרנט
-      · גרסה 7
+      · גרסה 8
     </p>
   </footer>
 
-  <script type="module" src="js/ui.js?v=7"></script>
+  <script type="module" src="js/ui.js?v=8"></script>
 </body>
 </html>
