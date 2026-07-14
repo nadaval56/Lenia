@@ -97,7 +97,12 @@ h3 { font-size: 1rem; margin: 14px 0 8px; }
   font-weight: 700;
   font-size: 0.92rem;
   cursor: pointer;
+  list-style: none;
 }
+.story-more > summary::-webkit-details-marker { display: none; }
+/* טקסט הכפתור מתחלף לפי מצב הקיפול */
+.story-more > summary::after { content: 'קרא עוד ↓'; }
+.story-more[open] > summary::after { content: 'פחות ↑'; }
 .story-more[open] > summary { margin-bottom: 4px; }
 .story .story-law {
   background: rgba(52, 199, 118, 0.1);
@@ -280,7 +285,9 @@ input[type="range"]::-moz-range-thumb {
 .help-btn:active { transform: scale(0.9); }
 
 .help-dialog {
-  position: relative;
+  /* דיאלוג מודאלי מקבל position:fixed מברירת המחדל של הדפדפן, וזה
+     גם משמש עוגן ל‑X שבפינה. אין להוסיף position אחר — הוא מוציא את
+     הדיאלוג מהמרכוז וגורם לעמוד לקפוץ. */
   background: var(--panel);
   color: var(--text);
   border: 1px solid #2b3650;
