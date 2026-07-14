@@ -162,6 +162,14 @@ export class Lenia {
     this.sigma = params.sigma ?? 0.017;
     this.T = params.T ?? 10;
     this.kernelType = params.kernelType ?? 'ring1';
+    /**
+     * צורת העולם:
+     *   'torus' — עולם עגול (ברירת מחדל): מי שיוצא מימין נכנס משמאל.
+     *   'walls' — אקווריום: לעולם יש קצה. תרומות שגולשות החוצה פשוט
+     *             אובדות, ולכן תא שצמוד לקיר "רואה" פחות שכנים —
+     *             בדיוק כמו דג שחי ליד דופן. חיים ליד קירות זה קשה!
+     */
+    this.boundary = params.boundary ?? 'torus';
     this.R = 0;                 // ייקבע ב‑setRadius
     this.setRadius(params.R ?? 13);
 
@@ -208,11 +216,12 @@ export class Lenia {
   }
 
   /** עדכון פרמטרים מהסליידרים */
-  setParams({ mu, sigma, R, T, kernelType } = {}) {
+  setParams({ mu, sigma, R, T, kernelType, boundary } = {}) {
     if (mu !== undefined) this.mu = mu;
     if (sigma !== undefined) this.sigma = sigma;
     if (T !== undefined) this.T = T;
     if (kernelType !== undefined) this.setKernelType(kernelType);
+    if (boundary !== undefined) this.boundary = boundary;
     if (R !== undefined) this.setRadius(R);
   }
 
@@ -256,26 +265,31 @@ export class Lenia {
       }
     }
 
-    // --- שלב 1ב: קיפול השוליים (העטיפה הטורואידלית) ---
-    // קודם אופקית: עמודות שגלשו שמאלה/ימינה חוזרות מהצד השני,
-    const PH = this.PH;
-    for (let py = 0; py < PH; py++) {
-      const prow = py * PW;
-      for (let px = 0; px < R; px++) {
-        UP[prow + px + W] += UP[prow + px];               // גלש שמאלה → צד ימין
+    // --- שלב 1ב: קיפול השוליים (רק בעולם עגול) ---
+    // בטורוס, מה שגלש מהקצה חוזר מהצד השני. באקווריום ('walls')
+    // מדלגים על הקיפול — התרומות שגלשו אל מעבר לקיר פשוט אובדות,
+    // ותאים ליד הקיר רואים שכונה חסרה.
+    if (this.boundary === 'torus') {
+      // קודם אופקית: עמודות שגלשו שמאלה/ימינה חוזרות מהצד השני,
+      const PH = this.PH;
+      for (let py = 0; py < PH; py++) {
+        const prow = py * PW;
+        for (let px = 0; px < R; px++) {
+          UP[prow + px + W] += UP[prow + px];             // גלש שמאלה → צד ימין
+        }
+        for (let px = PW - R; px < PW; px++) {
+          UP[prow + px - W] += UP[prow + px];             // גלש ימינה → צד שמאל
+        }
       }
-      for (let px = PW - R; px < PW; px++) {
-        UP[prow + px - W] += UP[prow + px];               // גלש ימינה → צד שמאל
+      // ואז אנכית: שורות שגלשו למעלה/למטה חוזרות מהצד השני.
+      for (let py = 0; py < R; py++) {
+        const src = py * PW, dst = (py + H) * PW;
+        for (let px = R; px < R + W; px++) UP[dst + px] += UP[src + px];
       }
-    }
-    // ואז אנכית: שורות שגלשו למעלה/למטה חוזרות מהצד השני.
-    for (let py = 0; py < R; py++) {
-      const src = py * PW, dst = (py + H) * PW;
-      for (let px = R; px < R + W; px++) UP[dst + px] += UP[src + px];
-    }
-    for (let py = PH - R; py < PH; py++) {
-      const src = py * PW, dst = (py - H) * PW;
-      for (let px = R; px < R + W; px++) UP[dst + px] += UP[src + px];
+      for (let py = PH - R; py < PH; py++) {
+        const src = py * PW, dst = (py - H) * PW;
+        for (let px = R; px < R + W; px++) UP[dst + px] += UP[src + px];
+      }
     }
 
     // --- שלב 2: צמיחה + עדכון + איסוף סטטיסטיקות ---

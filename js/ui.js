@@ -5,16 +5,16 @@
  * הרינדור (render.js), הקטלוג (catalog.js) ומפת הפאזה (phasemap.js).
  */
 
-import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=5';
-import { LeniaMulti } from './multi.js?v=5';
-import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=5';
-import { PhaseMap } from './phasemap.js?v=5';
-import { CREATURES } from './creatures.js?v=5';
-import * as catalog from './catalog.js?v=5';
+import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=6';
+import { LeniaMulti } from './multi.js?v=6';
+import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=6';
+import { PhaseMap } from './phasemap.js?v=6';
+import { CREATURES } from './creatures.js?v=6';
+import * as catalog from './catalog.js?v=6';
 
 /* ================= הגדרות כלליות ================= */
 
-const DEFAULTS = { mu: 0.15, sigma: 0.017, R: 13, T: 10, kernelType: 'ring1' };
+const DEFAULTS = { mu: 0.15, sigma: 0.017, R: 13, T: 10, kernelType: 'ring1', boundary: 'torus' };
 const HISTORY_LEN = 240;          // כמה פריימים אחורה זוכר גרף המסה
 const STUDENT_KEY = 'lenia.student';
 
@@ -138,6 +138,13 @@ function frame() {
   }
   if (isMulti) renderer.drawMulti(sim.A);
   else renderer.draw(sim.A);
+  // מסגרת "זכוכית" כשהעולם הוא אקווריום עם קירות
+  if (!isMulti && sim.boundary === 'walls') {
+    const ctx = renderer.ctx;
+    ctx.strokeStyle = 'rgba(140, 200, 255, 0.8)';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, renderer.canvas.width - 6, renderer.canvas.height - 6);
+  }
   updateIndicator();
   drawSparkline();
   // דגימת מפת הפאזה ברקע — רק בעולם חד־ערוצי (למפה אין משמעות בעולם צבעוני)
@@ -174,6 +181,7 @@ function syncSlidersFromParams() {
   $('sigmaValue').textContent = sim.sigma.toFixed(3);
   $('rValue').textContent = sim.R;
   $('kernelSelect').value = sim.kernelType;
+  $('boundarySelect').value = sim.boundary;
   phaseMap.setKernelType(sim.kernelType);
 }
 
@@ -184,7 +192,7 @@ const CHANNEL_NAMES = ['ירוק', 'אדום', 'כחול'];
 /** כניסה/יציאה ממצב עולם צבעוני: מנטרל את פקדי העולם היחיד */
 function setMultiMode(on) {
   isMulti = on;
-  for (const id of ['muSlider', 'sigmaSlider', 'rSlider', 'kernelSelect']) {
+  for (const id of ['muSlider', 'sigmaSlider', 'rSlider', 'kernelSelect', 'boundarySelect']) {
     $(id).disabled = on;
   }
   document.querySelector('.phase-wrap').classList.toggle('disabled', on);
@@ -198,6 +206,7 @@ function buildChannelPicker(C) {
   const picker = $('channelPicker');
   picker.innerHTML = '';
   brushChannel = 0;
+  picker.hidden = C < 2; // בעולם עם חומר אחד אין מה לבחור
   for (let c = 0; c < C; c++) {
     const btn = document.createElement('button');
     const [r, g, b] = CHANNEL_COLORS[c % CHANNEL_COLORS.length];
@@ -341,11 +350,12 @@ function loadCreatureIntoWorld({ params, seed, soup, brush, toastMsg, name, mult
     buildChannelPicker(multi.C);
   } else {
     if (isMulti) {
-      // חזרה לעולם רגיל מהעולם הצבעוני
+      // חזרה לעולם רגיל מעולם מיוחד
       sim = new Lenia(gridSize, gridSize, { ...DEFAULTS });
       setMultiMode(false);
     }
-    sim.setParams(params);
+    // יצור שלא הגדיר צורת עולם מקבל טורוס — כדי שקירות לא "יידבקו"
+    sim.setParams({ boundary: 'torus', ...params });
   }
   sim.clear();
   if (seed) sim.placeSeed(seed);
@@ -411,7 +421,7 @@ function renderGallery() {
     loadBtn.addEventListener('click', () => {
       // רשומות ישנות (מלפני בורר הגרעינים) לא שמרו kernelType — ברירת מחדל ring1
       loadCreatureIntoWorld({
-        params: { kernelType: 'ring1', ...e.params },
+        params: { kernelType: 'ring1', boundary: 'torus', ...e.params },
         seed: catalog.decodeSeed(e.seed),
         name: e.name,
         multi: e.multi,
@@ -463,7 +473,7 @@ function setupSaveDialog() {
         name,
         params: isMulti
           ? { R: sim.R, T: sim.T }  // בעולם צבעוני החוקים נמצאים ב-multi
-          : { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T, kernelType: sim.kernelType },
+          : { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T, kernelType: sim.kernelType, boundary: sim.boundary },
         seed,
         thumbnail: renderer.thumbnail(),
         discoveredBy: student,
@@ -552,6 +562,14 @@ function init() {
   $('brushMode').addEventListener('click', () => {
     brushErase = !brushErase;
     $('brushMode').textContent = brushErase ? '🧽 מחק' : '✏️ צייר';
+  });
+
+  // בורר צורת העולם (טורוס / אקווריום)
+  $('boundarySelect').addEventListener('change', (e) => {
+    sim.setParams({ boundary: e.target.value });
+    toast(e.target.value === 'walls'
+      ? 'העולם קיבל קירות! 🧱 שימו לב מה קורה ליצורים ליד הזכוכית'
+      : 'העולם עגול שוב 🍩 — מי שיוצא מצד אחד חוזר מהשני');
   });
 
   // בורר צורת הגרעין ("המשקפיים")

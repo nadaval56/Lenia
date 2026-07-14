@@ -24,7 +24,7 @@
  * הימנעויות, וטריטוריות — בלי שאף אחד תכנת אותן.
  */
 
-import { buildKernel, KERNEL_TYPES, seededRandom } from './lenia.js?v=5';
+import { buildKernel, KERNEL_TYPES, seededRandom } from './lenia.js?v=6';
 
 export class LeniaMulti {
   /**
@@ -50,18 +50,34 @@ export class LeniaMulti {
       this.D.push(new Float32Array(width * height));
     }
 
-    // הגרעין משותף לכל החיבורים (טבעת קלאסית) — ההבדלים בין חיבורים
-    // הם ב"חוק" (mu, sigma, h), לא בצורת הראייה.
-    const R = this.R;
-    this.PW = width + 2 * R;
-    this.PH = height + 2 * R;
+    // לכל חיבור יכול להיות גרעין ("משקפיים") משלו — עם רדיוס R וצורת
+    // טבעות שונים. זה הסוד של עולמות מרובי־משקפיים: תא שרואה גם קרוב
+    // וגם רחוק, עם חוק שונה לכל טווח (למשל: עידוד מקרוב, דיכוי מרחוק —
+    // המתכון הקלאסי של דפוסי טיורינג בטבע: כתמי נמר, פסי זברה).
+    // הריפוד נקבע לפי הרדיוס הגדול ביותר.
+    const maxR = Math.max(...config.connections.map((c) => c.R ?? this.R));
+    this.padR = maxR;
+    this.PW = width + 2 * maxR;
+    this.PH = height + 2 * maxR;
     this.UP = new Float32Array(this.PW * this.PH);
-    this.kernel = buildKernel(R, KERNEL_TYPES.ring1.rings);
-    this.pdelta = new Int32Array(this.kernel.dx.length);
-    for (let k = 0; k < this.kernel.dx.length; k++) {
-      // היסטים הפוכי־סימן, כמו במנוע החד־ערוצי (ראו lenia.js)
-      this.pdelta[k] = -(this.kernel.dy[k] * this.PW + this.kernel.dx[k]);
-    }
+
+    // בניית גרעין לכל חיבור (עם מטמון — חיבורים עם אותם משקפיים חולקים)
+    const cache = new Map();
+    this.kernels = this.connections.map((conn) => {
+      const R = conn.R ?? this.R;
+      const rings = conn.rings ?? KERNEL_TYPES.ring1.rings;
+      const key = R + JSON.stringify(rings);
+      if (!cache.has(key)) {
+        const kernel = buildKernel(R, rings);
+        const pdelta = new Int32Array(kernel.dx.length);
+        for (let k = 0; k < kernel.dx.length; k++) {
+          // היסטים הפוכי־סימן, כמו במנוע החד־ערוצי (ראו lenia.js)
+          pdelta[k] = -(kernel.dy[k] * this.PW + kernel.dx[k]);
+        }
+        cache.set(key, { kernel, pdelta });
+      }
+      return cache.get(key);
+    });
 
     this.mass = 0;              // מסה ממוצעת על פני כל הערוצים
     this.massPerChannel = new Array(this.C).fill(0);
@@ -69,16 +85,17 @@ export class LeniaMulti {
     this.generation = 0;
   }
 
-  /** קונבולוציה של ערוץ יחיד אל המאגר המרופד (פיזור מתאים חיים) */
-  _convolve(src) {
-    const { W, H, R, PW, UP, pdelta } = this;
+  /** קונבולוציה של ערוץ יחיד אל המאגר המרופד, עם הגרעין של החיבור */
+  _convolve(src, kernelEntry) {
+    const { W, H, padR, PW, UP } = this;
     const A = this.A[src];
-    const kw = this.kernel.w;
+    const kw = kernelEntry.kernel.w;
+    const pdelta = kernelEntry.pdelta;
     const nk = pdelta.length;
     UP.fill(0);
     for (let y = 0; y < H; y++) {
       const row = y * W;
-      const prow = (y + R) * PW + R;
+      const prow = (y + padR) * PW + padR;
       for (let x = 0; x < W; x++) {
         const v = A[row + x];
         if (v === 0) continue;
@@ -87,7 +104,7 @@ export class LeniaMulti {
       }
     }
     // קיפול השוליים הטורואידליים (זהה למנוע החד־ערוצי)
-    const PH = this.PH;
+    const PH = this.PH, R = padR;
     for (let py = 0; py < PH; py++) {
       const prow = py * PW;
       for (let px = 0; px < R; px++) UP[prow + px + W] += UP[prow + px];
@@ -105,18 +122,20 @@ export class LeniaMulti {
 
   /** צעד סימולציה אחד: כל החיבורים, ואז עדכון כל הערוצים יחד */
   step() {
-    const { W, H, R, PW, UP, C } = this;
+    const { W, H, padR, PW, UP, C } = this;
     for (let c = 0; c < C; c++) this.D[c].fill(0);
 
-    // כל חיבור: קונבולוציה על ערוץ המקור, צמיחה, צבירה לערוץ היעד
-    for (const conn of this.connections) {
-      this._convolve(conn.src);
+    // כל חיבור: קונבולוציה על ערוץ המקור (עם הגרעין שלו), צמיחה,
+    // וצבירה לערוץ היעד
+    for (let ci = 0; ci < this.connections.length; ci++) {
+      const conn = this.connections[ci];
+      this._convolve(conn.src, this.kernels[ci]);
       const D = this.D[conn.dst];
       const inv2s2 = 1 / (2 * conn.sigma * conn.sigma);
       const { mu, h, unit } = conn;
       for (let y = 0; y < H; y++) {
         const row = y * W;
-        const prow = (y + R) * PW + R;
+        const prow = (y + padR) * PW + padR;
         for (let x = 0; x < W; x++) {
           const d = UP[prow + x] - mu;
           const g = Math.exp(-(d * d) * inv2s2);     // פעמון [0,1]
