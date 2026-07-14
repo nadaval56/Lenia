@@ -239,6 +239,26 @@ input[type="range"]::-moz-range-thumb {
 }
 .param-more em { color: var(--text); font-style: normal; font-weight: 600; }
 
+/* ---------- עולם צבעוני (רב־ערוצי) ---------- */
+
+.multi-note {
+  background: linear-gradient(135deg, rgba(70,230,140,.12), rgba(255,95,70,.12));
+  border: 1px solid #2b3650;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+}
+.channel-picker { display: inline-flex; gap: 6px; }
+.channel-picker button {
+  min-height: 38px;
+  padding: 6px 14px;
+  border-width: 2px;
+  opacity: 0.55;
+}
+.channel-picker button.active { opacity: 1; font-weight: 700; }
+input:disabled, select:disabled { opacity: 0.35; cursor: not-allowed; }
+.phase-wrap.disabled { opacity: 0.35; pointer-events: none; }
+
 /* ---------- מפת הפאזה ---------- */
 
 .phase-wrap { margin: 18px 0; }

@@ -31,11 +31,17 @@
  * חיים יצורים אחרים. כל טבעת מוגדרת ע"י מרכז (במרחק מנורמל), עובי,
  * ועוצמה יחסית (amp).
  *
- * שלוש הצורות כאן נבחרו אחרי סקר מספרי (ראו tests/) כך שלכל אחת
+ * הצורות כאן נבחרו אחרי סקר מספרי (ראו tests/) כך שלכל אחת
  * "כתב יד" מזוהה משלה במרק אקראי:
  *   ring1  → נקודות עגולות שמנמנות (הקלאסי; אורביום חי כאן)
  *   rings2 → פסים אלכסוניים גליים ב‑μ/σ גבוהים
  *   rings3 → אבק עדין של גרגרים זעירים
+ *   wind   → כמו הקלאסי אבל עם "רוח": ראייה מוטה לכיוון אחד
+ *
+ * bias (אופציונלי) שובר את הסימטריה: המשקל מוכפל ב‑
+ *     1 + strength · cos(θ − angle)
+ * כלומר התא "רואה" חזק יותר את מי שנמצא בכיוון angle. עולם שכולם בו
+ * מסתכלים לאותו כיוון — זז. כמו דגים ששוחים נגד הזרם בלי לדעת.
  */
 export const KERNEL_TYPES = {
   ring1: {
@@ -53,6 +59,11 @@ export const KERNEL_TYPES = {
       { center: 0.5, width: 0.06, amp: 0.7 },
       { center: 0.83, width: 0.06, amp: 0.4 },
     ],
+  },
+  wind: {
+    name: '🧭 טבעת עם רוח — הזורם',
+    rings: [{ center: 0.5, width: 0.15, amp: 1 }],
+    bias: { strength: 0.6, angle: Math.PI / 4 },
   },
 };
 
@@ -77,9 +88,10 @@ export const KERNEL_TYPES = {
  *
  * @param {number} R רדיוס הגרעין בתאים
  * @param {Array<{center:number,width:number,amp:number}>} rings הטבעות
+ * @param {{strength:number, angle:number}} [bias] הטיה כיוונית ("רוח"), אופציונלי
  * @returns {{dx: Int16Array, dy: Int16Array, w: Float32Array}} רשימת היסטים ומשקולות
  */
-export function buildKernel(R, rings = KERNEL_TYPES.ring1.rings) {
+export function buildKernel(R, rings = KERNEL_TYPES.ring1.rings, bias = null) {
   const dxs = [], dys = [], ws = [];
   let sum = 0;
 
@@ -91,6 +103,10 @@ export function buildKernel(R, rings = KERNEL_TYPES.ring1.rings) {
       for (const ring of rings) {
         const d = r - ring.center;
         w += ring.amp * Math.exp(-(d * d) / (2 * ring.width * ring.width));
+      }
+      if (bias) {
+        // שבירת סימטריה: מגבירים את המשקל בכיוון ה"רוח" ומחלישים בכיוון הנגדי
+        w *= 1 + bias.strength * Math.cos(Math.atan2(dy, dx) - bias.angle);
       }
       if (w < 1e-3) continue; // משקל זניח — לא שווה את זמן החישוב
       dxs.push(dx); dys.push(dy); ws.push(w);
@@ -171,7 +187,8 @@ export class Lenia {
 
   /** בנייה מחדש של הגרעין ומבני העזר של הקונבולוציה המהירה */
   _rebuildKernel() {
-    this.kernel = buildKernel(this.R, KERNEL_TYPES[this.kernelType].rings);
+    const type = KERNEL_TYPES[this.kernelType];
+    this.kernel = buildKernel(this.R, type.rings, type.bias ?? null);
 
     // מבני עזר לקונבולוציה המהירה (ראו הסבר ב‑step):
     // מאגר "מרופד" — הרשת עם שוליים ברוחב R מכל צד, כך שפיזור תרומות
@@ -180,12 +197,14 @@ export class Lenia {
     this.PW = this.W + 2 * R;
     this.PH = this.H + 2 * R;
     this.UP = new Float32Array(this.PW * this.PH);
-    // ההיסטים כאינדקסים ליניאריים במאגר המרופד.
-    // הגרעין סימטרי (w תלוי רק במרחק), לכן פיזור מ‑A[src] לכיוון +Δ
-    // שקול לאיסוף של A[dst+Δ] — התוצאה זהה לקונבולוציה מהנוסחה.
+    // ההיסטים כאינדקסים ליניאריים במאגר המרופד — עם היפוך סימן!
+    // בקונבולוציה U[i] = Σ K(Δ)·A[i+Δ], כלומר תא המקור j=i+Δ תורם
+    // ליעד i = j−Δ. לכן ב"פיזור" (מהמקור החוצה) הולכים לכיוון −Δ.
+    // בגרעין סימטרי אין הבדל, אבל בגרעין עם "רוח" (לא סימטרי) ההיפוך
+    // הכרחי — אחרת הרוח תנשב לכיוון ההפוך מהמוגדר.
     const { dx, dy } = this.kernel;
     this.pdelta = new Int32Array(dx.length);
-    for (let k = 0; k < dx.length; k++) this.pdelta[k] = dy[k] * this.PW + dx[k];
+    for (let k = 0; k < dx.length; k++) this.pdelta[k] = -(dy[k] * this.PW + dx[k]);
   }
 
   /** עדכון פרמטרים מהסליידרים */
@@ -212,7 +231,8 @@ export class Lenia {
    * טריק ביצועים מרכזי: במקום ש**כל** תא "יאסוף" מכל שכניו (גם כשרובם
    * מתים), כל תא **חי** "מפזר" את התרומה שלו לשכנים. תא שערכו 0 לא תורם
    * כלום — אז מדלגים עליו לגמרי. כשיש יצור בודד על רשת ריקה זה מהיר
-   * פי ~50, כי רק ~1% מהתאים חיים. התוצאה זהה מתמטית, כי הגרעין סימטרי.
+   * פי ~50, כי רק ~1% מהתאים חיים. התוצאה זהה מתמטית לאיסוף, כי
+   * ההיסטים ב‑pdelta הפוכי־סימן (ראו _rebuildKernel).
    *
    * את העטיפה הטורואידלית פותרים עם מאגר "מרופד" (UP): מפזרים בלי
    * בדיקות גבול לתוך שוליים ברוחב R, ובסוף "מקפלים" את השוליים חזרה

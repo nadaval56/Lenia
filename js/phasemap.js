@@ -26,7 +26,7 @@
  * תא שערכו חסר (null) נדגם חי ברקע.
  */
 
-import { Lenia, classifyState, seededRandom, KERNEL_TYPES } from './lenia.js?v=4';
+import { Lenia, classifyState, seededRandom, KERNEL_TYPES } from './lenia.js?v=5';
 
 /** תצורת הדגימה — שינוי כאן מאלץ דגימה מחדש (דרך מפתח המטמון) */
 const CONFIG = {
@@ -39,7 +39,7 @@ const CONFIG = {
 };
 
 /** רדיוס המיקרו־סימולציה לכל גרעין: טבעות דקות צריכות R גדול מעט יותר */
-const SAMPLE_R = { ring1: 8, rings2: 10, rings3: 10 };
+const SAMPLE_R = { ring1: 8, rings2: 10, rings3: 10, wind: 10 };
 
 /**
  * תוצאות אפויות מראש (v=void, l=life, c=chaos), אינדקס = cy*cols+cx
@@ -50,6 +50,7 @@ const BAKED = {
   ring1: 'lvvvvvvvvvvvvvvlllllvvvvvvvvvvllllllccvvvvvvvlllllllcccvvvvvllllllcccccvvvvllllllccccccvvvllllcccccccccvvlllccccccccccvvlllcccccccccccvllccccccccccccclcccccccccccccc',
   rings2: 'lvvvvvvvvvvvvvvlllllvvvvvvvvvvlllllllvlvvvvvvlllllllcclvvvvvllllllccccvvvvvlllllccccccvvvvlllllcccccccvvvllllccccccccvvvlllccccccccccvvlllccccccccccvvllccccccccccccv',
   rings3: 'lllvvvvvvvvvvvvlllllllvvvvvvvvllllllllllvvvvvlllllllcclvvvvvllllllcccclvvvvlllllccccccvvvvlllllcccccccvvvllllccccccccvvvllllcccccccccvvlllccccccccccvvllccccccccccccv',
+  wind: 'vvvvvvvvvvvvvvvllvvvvvvvvvvvvvllllvvvvvvvvvvvllllllvvvvvvvvvllllllcclvvvvvvlllllcccccvvvvvllllccccccclvvvlllccccccccccvvllcccccccccccvvllccccccccccccvlcccccccccccccv',
 };
 
 const STATE_BY_CHAR = { v: 'void', l: 'life', c: 'chaos' };

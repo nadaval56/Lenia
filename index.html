@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>סייר לניה — מעבדת חיים מלאכותיים</title>
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦠</text></svg>">
 </head>
 <body>
@@ -82,6 +82,7 @@
 
       <div class="brush-row">
         <button id="brushMode">✏️ צייר</button>
+        <span id="channelPicker" class="channel-picker" hidden></span>
         <label>גודל מברשת <span id="brushValue">4</span>
           <input type="range" id="brushSlider" min="2" max="12" step="1" value="4">
         </label>
@@ -92,6 +93,13 @@
     <!-- ======== הפרמטרים: הכפתורים של הבריאה ======== -->
     <section class="controls">
       <h2>🎛️ חוקי העולם</h2>
+
+      <p id="multiNote" class="multi-note" hidden>
+        🌈 אתם בעולם צבעוני! החוקים כאן הם "חיבורים" בין חומרים (ירוק חי
+        לבד, אדום ניזון ממנו) והם קבועים מראש — לכן μ, σ והמשקפיים כבויים.
+        עדיין אפשר לצייר בצבעים, לזרוע מרק, לשנות מהירות ולשמור תגליות.
+        חזרה לעולם הרגיל: כפתור ♻️ איפוס או כל יצור רגיל.
+      </p>
 
       <div class="param main-param">
         <label for="muSlider">
@@ -162,7 +170,8 @@
           <p>
             ⭕ טבעת אחת ⇐ נקודות שמנמנות (והאורביום!) ·
             🌊 שתי טבעות ⇐ פסים גליים ·
-            ✨ שלוש טבעות ⇐ אבק עדין.
+            ✨ שלוש טבעות ⇐ אבק עדין ·
+            🧭 טבעת עם רוח ⇐ ראייה מוטה לכיוון אחד, וכל העולם נסחף!
             <em>שימו לב: יצור שנולד במשקפיים אחדות מתפרק באחרות — ומפת
             אזור החיים מתחלפת גם היא, כי לכל עולם יש מפה משלו.</em>
           </p>
@@ -329,10 +338,10 @@
     <p>
       מבוסס על <a href="https://chakazul.github.io/lenia.html" target="_blank" rel="noopener">Lenia</a>
       של ברט צ'אן (Bert Chan) · הכול רץ אצלכם בדפדפן, שום דבר לא נשלח לאינטרנט
-      · גרסה 4
+      · גרסה 5
     </p>
   </footer>
 
-  <script type="module" src="js/ui.js?v=4"></script>
+  <script type="module" src="js/ui.js?v=5"></script>
 </body>
 </html>

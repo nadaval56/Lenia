@@ -73,6 +73,13 @@ export const PALETTES = {
   },
 };
 
+/** צבעי הערוצים בעולמות רב־ערוציים (RGB) */
+export const CHANNEL_COLORS = [
+  [70, 230, 140],   // ערוץ 0: ירוק — "הנטרף"
+  [255, 95, 70],    // ערוץ 1: אדום-כתום — "הטורף"
+  [90, 150, 255],   // ערוץ 2: כחול
+];
+
 export class Renderer {
   /**
    * @param {HTMLCanvasElement} canvas הקנבס המוצג למשתמש
@@ -104,6 +111,34 @@ export class Renderer {
   setPalette(key) {
     this.paletteKey = key in PALETTES ? key : 'bio';
     this.lut = buildLUT(PALETTES[this.paletteKey].stops);
+  }
+
+  /**
+   * ציור עולם רב־ערוצי: כל ערוץ בצבע משלו, ערבוב חיבורי (additive).
+   * ערוץ 0 = ירוק (הנטרף), ערוץ 1 = אדום־כתום (הטורף), ערוץ 2 = כחול.
+   * @param {Float32Array[]} channels מערך רשתות, אחת לכל ערוץ
+   */
+  drawMulti(channels) {
+    const px = this.imageData.data;
+    const n = channels[0].length;
+    for (let i = 0; i < n; i++) {
+      let r = 8, g = 12, b = 24; // רקע כחול-לילה כמו בפלטה הביולוגית
+      for (let c = 0; c < channels.length; c++) {
+        const v = channels[c][i];
+        if (v === 0) continue;
+        const col = CHANNEL_COLORS[c % CHANNEL_COLORS.length];
+        r += col[0] * v; g += col[1] * v; b += col[2] * v;
+      }
+      const j = i * 4;
+      px[j] = r > 255 ? 255 : r;
+      px[j + 1] = g > 255 ? 255 : g;
+      px[j + 2] = b > 255 ? 255 : b;
+    }
+    this.offCtx.putImageData(this.imageData, 0, 0);
+    const ctx = this.ctx;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(this.offscreen, 0, 0, this.canvas.width, this.canvas.height);
   }
 
   /**

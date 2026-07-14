@@ -5,11 +5,12 @@
  * הרינדור (render.js), הקטלוג (catalog.js) ומפת הפאזה (phasemap.js).
  */
 
-import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=4';
-import { Renderer, PALETTES } from './render.js?v=4';
-import { PhaseMap } from './phasemap.js?v=4';
-import { CREATURES } from './creatures.js?v=4';
-import * as catalog from './catalog.js?v=4';
+import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js?v=5';
+import { LeniaMulti } from './multi.js?v=5';
+import { Renderer, PALETTES, CHANNEL_COLORS } from './render.js?v=5';
+import { PhaseMap } from './phasemap.js?v=5';
+import { CREATURES } from './creatures.js?v=5';
+import * as catalog from './catalog.js?v=5';
 
 /* ================= הגדרות כלליות ================= */
 
@@ -23,6 +24,8 @@ const $ = (id) => document.getElementById(id);
 
 let gridSize = 128;
 let sim = new Lenia(gridSize, gridSize, { ...DEFAULTS });
+let isMulti = false;               // האם אנחנו בעולם רב־ערוצי (צבעוני)
+let brushChannel = 0;              // באיזה "חומר" (ערוץ) המברשת מציירת
 let renderer;                      // נוצר ב‑init אחרי שה‑DOM מוכן
 let phaseMap;
 let running = true;
@@ -54,6 +57,13 @@ const STATE_INFO = {
  * יקבל משוב כחול עוד לפני שהעולם ריק לגמרי.
  */
 function computeState() {
+  if (isMulti) {
+    // בעולם צבעוני גלי המרדף מכסים שטח גדול באופן טבעי — לכן מסווגים
+    // רק לפי מסה (כיסוי גבוה אינו "כאוס" כשמדובר באקולוגיה נודדת)
+    if (sim.mass < 0.0012) return 'void';
+    if (sim.mass > 0.30) return 'chaos';
+    return 'life';
+  }
   let s = classifyState(sim.mass, sim.coverage);
   if (s === 'life' && sim.mass < 0.03 && massHistory.length > 90) {
     const then = massHistory[massHistory.length - 90];
@@ -126,12 +136,15 @@ function frame() {
       if (massHistory.length > HISTORY_LEN) massHistory.shift();
     }
   }
-  renderer.draw(sim.A);
+  if (isMulti) renderer.drawMulti(sim.A);
+  else renderer.draw(sim.A);
   updateIndicator();
   drawSparkline();
-  // דגימת מפת הפאזה ברקע — בנתח זמן קטן שלא מפריע לאנימציה
-  phaseMap.tick(running ? 3 : 8);
-  phaseMap.draw(sim.mu, sim.sigma);
+  // דגימת מפת הפאזה ברקע — רק בעולם חד־ערוצי (למפה אין משמעות בעולם צבעוני)
+  if (!isMulti) {
+    phaseMap.tick(running ? 3 : 8);
+    phaseMap.draw(sim.mu, sim.sigma);
+  }
   requestAnimationFrame(frame);
 }
 
@@ -151,16 +164,56 @@ function bindSlider(id, valueId, apply, format = (v) => v) {
 }
 
 function syncSlidersFromParams() {
+  $('tSlider').value = sim.T;
+  $('tValue').textContent = sim.T;
+  if (isMulti) return; // בעולם צבעוני אין μ/σ/גרעין יחידים לסנכרן
   $('muSlider').value = sim.mu;
   $('sigmaSlider').value = sim.sigma;
   $('rSlider').value = sim.R;
-  $('tSlider').value = sim.T;
   $('muValue').textContent = sim.mu.toFixed(3);
   $('sigmaValue').textContent = sim.sigma.toFixed(3);
   $('rValue').textContent = sim.R;
-  $('tValue').textContent = sim.T;
   $('kernelSelect').value = sim.kernelType;
   phaseMap.setKernelType(sim.kernelType);
+}
+
+/* ================= עולם צבעוני (רב־ערוצי) ================= */
+
+const CHANNEL_NAMES = ['ירוק', 'אדום', 'כחול'];
+
+/** כניסה/יציאה ממצב עולם צבעוני: מנטרל את פקדי העולם היחיד */
+function setMultiMode(on) {
+  isMulti = on;
+  for (const id of ['muSlider', 'sigmaSlider', 'rSlider', 'kernelSelect']) {
+    $(id).disabled = on;
+  }
+  document.querySelector('.phase-wrap').classList.toggle('disabled', on);
+  $('multiNote').hidden = !on;
+  $('channelPicker').hidden = !on;
+  if (!on) brushChannel = 0;
+}
+
+/** בניית כפתורי בחירת "חומר" למברשת, לפי מספר הערוצים בעולם */
+function buildChannelPicker(C) {
+  const picker = $('channelPicker');
+  picker.innerHTML = '';
+  brushChannel = 0;
+  for (let c = 0; c < C; c++) {
+    const btn = document.createElement('button');
+    const [r, g, b] = CHANNEL_COLORS[c % CHANNEL_COLORS.length];
+    btn.textContent = CHANNEL_NAMES[c] ?? `חומר ${c + 1}`;
+    btn.style.borderColor = `rgb(${r},${g},${b})`;
+    if (c === 0) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      brushChannel = c;
+      if (brushErase) {
+        brushErase = false;
+        $('brushMode').textContent = '✏️ צייר';
+      }
+      picker.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === btn));
+    });
+    picker.appendChild(btn);
+  }
 }
 
 /* ================= פעולות ================= */
@@ -184,6 +237,11 @@ function doClear() {
 }
 
 function doReset() {
+  if (isMulti) {
+    // איפוס מהעולם הצבעוני מחזיר לעולם הרגיל
+    sim = new Lenia(gridSize, gridSize, { ...DEFAULTS });
+    setMultiMode(false);
+  }
   sim.setParams({ ...DEFAULTS });
   syncSlidersFromParams();
   toast('הפרמטרים חזרו לברירת המחדל ♻️');
@@ -217,7 +275,7 @@ function setupBrush() {
     const rect = canvas.getBoundingClientRect();
     const gx = Math.floor(((e.clientX - rect.left) / rect.width) * sim.W);
     const gy = Math.floor(((e.clientY - rect.top) / rect.height) * sim.H);
-    sim.brush(gx, gy, brushSize, brushErase ? 0 : 1);
+    sim.brush(gx, gy, brushSize, brushErase ? 0 : 1, brushChannel);
   };
 
   canvas.addEventListener('pointerdown', (e) => {
@@ -248,6 +306,7 @@ function setupPhaseMapInput() {
   const canvas = $('phaseMap');
   let dragging = false;
   const apply = (e) => {
+    if (isMulti) return; // למפה אין משמעות בעולם הצבעוני
     const { mu, sigma } = phaseMap.paramsAt(e.clientX, e.clientY);
     sim.setParams({ mu: +mu.toFixed(3), sigma: +sigma.toFixed(3) });
     syncSlidersFromParams();
@@ -274,11 +333,23 @@ function setupPhaseMapInput() {
  * הציורים) משאיר עולם ריק. brush מכוון את גודל המברשת, toastMsg מחליף
  * את הודעת ברירת המחדל.
  */
-function loadCreatureIntoWorld({ params, seed, soup, brush, toastMsg, name }) {
-  sim.setParams(params);
+function loadCreatureIntoWorld({ params, seed, soup, brush, toastMsg, name, multi }) {
+  if (multi) {
+    // עולם צבעוני: מנוע רב־ערוצי עם רשת החיבורים של הניסוי
+    sim = new LeniaMulti(gridSize, gridSize, multi);
+    setMultiMode(true);
+    buildChannelPicker(multi.C);
+  } else {
+    if (isMulti) {
+      // חזרה לעולם רגיל מהעולם הצבעוני
+      sim = new Lenia(gridSize, gridSize, { ...DEFAULTS });
+      setMultiMode(false);
+    }
+    sim.setParams(params);
+  }
   sim.clear();
   if (seed) sim.placeSeed(seed);
-  if (soup) sim.soup(soup.density);
+  if (soup) sim.soup(soup.density, soup.fraction);
   if (brush) {
     brushSize = brush;
     $('brushSlider').value = brush;
@@ -343,6 +414,7 @@ function renderGallery() {
         params: { kernelType: 'ring1', ...e.params },
         seed: catalog.decodeSeed(e.seed),
         name: e.name,
+        multi: e.multi,
       });
     });
 
@@ -389,10 +461,13 @@ function setupSaveDialog() {
     try {
       catalog.saveCreature({
         name,
-        params: { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T, kernelType: sim.kernelType },
+        params: isMulti
+          ? { R: sim.R, T: sim.T }  // בעולם צבעוני החוקים נמצאים ב-multi
+          : { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T, kernelType: sim.kernelType },
         seed,
         thumbnail: renderer.thumbnail(),
         discoveredBy: student,
+        multi: isMulti ? sim.config : undefined,
       });
       toast(`"${name}" נשמר לספר המינים! 📖`);
       renderGallery();
@@ -428,8 +503,12 @@ function setupImportExport() {
 function setGridSize(size) {
   if (size === gridSize) return;
   gridSize = size;
-  const params = { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T };
-  sim = new Lenia(size, size, params);
+  if (isMulti) {
+    sim = new LeniaMulti(size, size, sim.config);
+  } else {
+    const params = { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T, kernelType: sim.kernelType };
+    sim = new Lenia(size, size, params);
+  }
   renderer.setGridSize(size, size);
   massHistory.length = 0;
   doSoup();

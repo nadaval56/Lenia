@@ -22,11 +22,11 @@ const STORAGE_KEY = 'lenia.catalog.v1';
 
 /* ---------- דחיסת seed: Float32 [0,1] → Uint8 → base64 ---------- */
 
-/** קידוד: כל תא נדחס לבייט אחד (256 רמות מספיקות לזריעה) */
-export function encodeSeed(seed) {
-  const bytes = new Uint8Array(seed.w * seed.h);
+/** דחיסת מערך תאים בודד לבייטים + base64 */
+function cellsToB64(cells) {
+  const bytes = new Uint8Array(cells.length);
   for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = Math.round(Math.min(1, Math.max(0, seed.cells[i])) * 255);
+    bytes[i] = Math.round(Math.min(1, Math.max(0, cells[i])) * 255);
   }
   // המרה ל‑base64 בנתחים (btoa מוגבל באורך הארגומנטים)
   let bin = '';
@@ -34,17 +34,33 @@ export function encodeSeed(seed) {
   for (let i = 0; i < bytes.length; i += CHUNK) {
     bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
   }
-  return { w: seed.w, h: seed.h, b64: btoa(bin) };
+  return btoa(bin);
 }
 
-/** פענוח: base64 → Uint8 → Float32 [0,1] */
-export function decodeSeed(enc) {
-  const bin = atob(enc.b64);
-  const cells = new Float32Array(enc.w * enc.h);
-  for (let i = 0; i < cells.length; i++) {
-    cells[i] = bin.charCodeAt(i) / 255;
+function b64ToCells(b64) {
+  const bin = atob(b64);
+  const cells = new Float32Array(bin.length);
+  for (let i = 0; i < cells.length; i++) cells[i] = bin.charCodeAt(i) / 255;
+  return cells;
+}
+
+/**
+ * קידוד: כל תא נדחס לבייט אחד (256 רמות מספיקות לזריעה).
+ * תומך גם ב‑seed חד־ערוצי ({cells}) וגם ברב־ערוצי ({channels: [cells...]}).
+ */
+export function encodeSeed(seed) {
+  if (seed.channels) {
+    return { w: seed.w, h: seed.h, channels: seed.channels.map(cellsToB64) };
   }
-  return { w: enc.w, h: enc.h, cells };
+  return { w: seed.w, h: seed.h, b64: cellsToB64(seed.cells) };
+}
+
+/** פענוח: base64 → Uint8 → Float32 [0,1] (חד־ או רב־ערוצי) */
+export function decodeSeed(enc) {
+  if (enc.channels) {
+    return { w: enc.w, h: enc.h, channels: enc.channels.map(b64ToCells) };
+  }
+  return { w: enc.w, h: enc.h, cells: b64ToCells(enc.b64) };
 }
 
 /* ---------- פעולות הקטלוג ---------- */
@@ -68,7 +84,7 @@ function persist(list) {
  * שמירת יצור חדש. זורק חריגה אם localStorage מלא —
  * הקורא אחראי להציג הודעה ידידותית.
  */
-export function saveCreature({ name, params, seed, thumbnail, discoveredBy }) {
+export function saveCreature({ name, params, seed, thumbnail, discoveredBy, multi }) {
   const list = loadCatalog();
   const entry = {
     id: `c_${Date.now()}_${Math.floor(Math.random() * 1e6)}`,
@@ -79,6 +95,7 @@ export function saveCreature({ name, params, seed, thumbnail, discoveredBy }) {
     discoveredBy,
     date: new Date().toISOString(),
   };
+  if (multi) entry.multi = multi; // תצורת עולם רב־ערוצי (רשימת החיבורים)
   list.unshift(entry); // החדש ביותר ראשון
   persist(list);
   return entry;
@@ -121,8 +138,9 @@ export function importCatalog(jsonText) {
   const existing = new Set(list.map((e) => e.id));
   let added = 0;
   for (const e of incoming) {
-    // בדיקת שדות מינימלית כדי לא לייבא זבל
-    if (!e || typeof e.id !== 'string' || !e.params || !e.seed?.b64) continue;
+    // בדיקת שדות מינימלית כדי לא לייבא זבל (seed חד־ או רב־ערוצי)
+    if (!e || typeof e.id !== 'string' || !e.params) continue;
+    if (!e.seed?.b64 && !Array.isArray(e.seed?.channels)) continue;
     if (existing.has(e.id)) continue;
     list.push(e);
     existing.add(e.id);
