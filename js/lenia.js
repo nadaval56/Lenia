@@ -24,27 +24,62 @@
  */
 
 /**
+ * צורות הגרעין ("המשקפיים") הזמינות.
+ *
+ * בלניה המקורית של ברט צ'אן, המגוון העצום של מינים נובע בדיוק מכאן:
+ * גרעינים בעלי מספר טבעות שונות יוצרים "פיזיקות" שונות לגמרי, ובכל אחת
+ * חיים יצורים אחרים. כל טבעת מוגדרת ע"י מרכז (במרחק מנורמל), עובי,
+ * ועוצמה יחסית (amp).
+ *
+ * שלוש הצורות כאן נבחרו אחרי סקר מספרי (ראו tests/) כך שלכל אחת
+ * "כתב יד" מזוהה משלה במרק אקראי:
+ *   ring1  → נקודות עגולות שמנמנות (הקלאסי; אורביום חי כאן)
+ *   rings2 → פסים אלכסוניים גליים ב‑μ/σ גבוהים
+ *   rings3 → אבק עדין של גרגרים זעירים
+ */
+export const KERNEL_TYPES = {
+  ring1: {
+    name: '⭕ טבעת אחת — הקלאסי',
+    rings: [{ center: 0.5, width: 0.15, amp: 1 }],
+  },
+  rings2: {
+    name: '🌊 שתי טבעות — הגלי',
+    rings: [{ center: 0.25, width: 0.08, amp: 1 }, { center: 0.75, width: 0.08, amp: 1 }],
+  },
+  rings3: {
+    name: '✨ שלוש טבעות — האבק',
+    rings: [
+      { center: 0.17, width: 0.06, amp: 1 },
+      { center: 0.5, width: 0.06, amp: 0.7 },
+      { center: 0.83, width: 0.06, amp: 0.4 },
+    ],
+  },
+};
+
+/**
  * בניית הגרעין (Kernel) — ה"משקפיים" של כל תא.
  *
- * הגרעין הוא טבעת: תא לא מושפע מעצמו (המרכז=0) ולא ממי שרחוק מדי (r>R),
- * אלא בעיקר ממי שנמצא בטבעת סביבו, במרחק של בערך חצי רדיוס.
+ * הגרעין בנוי מטבעות: תא לא מושפע מעצמו (המרכז=0) ולא ממי שרחוק מדי
+ * (r>R), אלא ממי שנמצא בטבעות סביבו.
  *
  * לכל היסט (dx,dy) בתוך רדיוס R:
- *     r = sqrt(dx² + dy²) / R                        ← מרחק מנורמל ל‑[0,1]
- *     K(r) = exp( -((r - 0.5)²) / (2 · 0.15²) )      ← פעמון גאוסיאני סביב r=0.5
+ *     r = sqrt(dx² + dy²) / R                     ← מרחק מנורמל ל‑[0,1]
+ *     K(r) = Σᵢ ampᵢ · exp( -((r - centerᵢ)²) / (2 · widthᵢ²) )
+ *
+ * (בגרעין הקלאסי יש טבעת אחת: center=0.5, width=0.15 — פעמון גאוסיאני
+ * סביב חצי הרדיוס.)
  *
  * בסוף מנרמלים כך שסכום כל המשקולות = 1, כדי ש‑U יישאר בסקאלה של A
  * (ממוצע משוקלל של השכנים) ולא יגדל כשמגדילים את R.
  *
- * אופטימיזציה: במקום לחשב את הטבעת מחדש בכל פריים, מחשבים פעם אחת
+ * אופטימיזציה: במקום לחשב את הטבעות מחדש בכל פריים, מחשבים פעם אחת
  * רשימה "דלילה" (sparse) של ההיסטים שמשקלם אינו זניח.
  *
  * @param {number} R רדיוס הגרעין בתאים
+ * @param {Array<{center:number,width:number,amp:number}>} rings הטבעות
  * @returns {{dx: Int16Array, dy: Int16Array, w: Float32Array}} רשימת היסטים ומשקולות
  */
-export function buildKernel(R) {
-  const KERNEL_RING_CENTER = 0.5;   // הטבעת נמצאת בחצי הרדיוס
-  const KERNEL_RING_WIDTH = 0.15;   // עובי הטבעת
+export function buildKernel(R, rings = KERNEL_TYPES.ring1.rings) {
   const dxs = [], dys = [], ws = [];
   let sum = 0;
 
@@ -52,8 +87,11 @@ export function buildKernel(R) {
     for (let dx = -R; dx <= R; dx++) {
       const r = Math.sqrt(dx * dx + dy * dy) / R;
       if (r === 0 || r > 1) continue; // לא אני עצמי, ולא רחוק מדי
-      const d = r - KERNEL_RING_CENTER;
-      const w = Math.exp(-(d * d) / (2 * KERNEL_RING_WIDTH * KERNEL_RING_WIDTH));
+      let w = 0;
+      for (const ring of rings) {
+        const d = r - ring.center;
+        w += ring.amp * Math.exp(-(d * d) / (2 * ring.width * ring.width));
+      }
       if (w < 1e-3) continue; // משקל זניח — לא שווה את זמן החישוב
       dxs.push(dx); dys.push(dy); ws.push(w);
       sum += w;
@@ -107,6 +145,7 @@ export class Lenia {
     this.mu = params.mu ?? 0.15;
     this.sigma = params.sigma ?? 0.017;
     this.T = params.T ?? 10;
+    this.kernelType = params.kernelType ?? 'ring1';
     this.R = 0;                 // ייקבע ב‑setRadius
     this.setRadius(params.R ?? 13);
 
@@ -120,11 +159,24 @@ export class Lenia {
   setRadius(R) {
     if (R === this.R) return;
     this.R = R;
-    this.kernel = buildKernel(R);
+    this._rebuildKernel();
+  }
+
+  /** החלפת צורת הגרעין ("המשקפיים") — ראו KERNEL_TYPES */
+  setKernelType(type) {
+    if (!(type in KERNEL_TYPES) || type === this.kernelType) return;
+    this.kernelType = type;
+    this._rebuildKernel();
+  }
+
+  /** בנייה מחדש של הגרעין ומבני העזר של הקונבולוציה המהירה */
+  _rebuildKernel() {
+    this.kernel = buildKernel(this.R, KERNEL_TYPES[this.kernelType].rings);
 
     // מבני עזר לקונבולוציה המהירה (ראו הסבר ב‑step):
     // מאגר "מרופד" — הרשת עם שוליים ברוחב R מכל צד, כך שפיזור תרומות
     // מתא שקרוב לקצה לא צריך בדיקות עטיפה בלולאה הפנימית.
+    const R = this.R;
     this.PW = this.W + 2 * R;
     this.PH = this.H + 2 * R;
     this.UP = new Float32Array(this.PW * this.PH);
@@ -137,10 +189,11 @@ export class Lenia {
   }
 
   /** עדכון פרמטרים מהסליידרים */
-  setParams({ mu, sigma, R, T } = {}) {
+  setParams({ mu, sigma, R, T, kernelType } = {}) {
     if (mu !== undefined) this.mu = mu;
     if (sigma !== undefined) this.sigma = sigma;
     if (T !== undefined) this.T = T;
+    if (kernelType !== undefined) this.setKernelType(kernelType);
     if (R !== undefined) this.setRadius(R);
   }
 

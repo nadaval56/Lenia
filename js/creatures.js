@@ -10,7 +10,12 @@
  * הדפוס הקנוני מעבודתו של Bert Chan (ממציא Lenia), והוא אומת מספרית
  * מול המימוש הזה: הוא שוחה במסה יציבה לאורך 400+ צעדים
  * (ראו tests/verify.mjs).
+ *
+ * שימו לב: לכל יצור יש גם kernelType — צורת ה"משקפיים" שהוא חי בה.
+ * יצור שנבנה לגרעין אחד מתפרק בגרעין אחר.
  */
+
+import { decodeSeed } from './catalog.js';
 
 /**
  * Orbium unicaudatus — "המדוזה השוחה", היצור המפורסם ביותר של Lenia.
@@ -81,10 +86,6 @@ function compose(w, h, placements) {
 }
 
 /**
- * רשימת היצורים המובנים.
- * כל רשומה: name (לתצוגה), description (טיפ לילד), params, seed.
- */
-/**
  * יצירת "כתם רך" עגול — דיסק עם קצוות דוהים (כמו המברשת).
  * משמש כזרע של "הפרח הפורח": ב‑σ גמיש, כתם כזה פורח למושבה שלמה.
  */
@@ -100,21 +101,36 @@ function diskSeed(radius) {
   return { w: s, h: s, cells };
 }
 
+/**
+ * "מקטע מושבה" — חתיכה של 36×36 ממושבת נקודות מיוצבת (נדגמה ממרק
+ * שהתייצב במשך 600 דורות; ראו tests/round4). משמש בניסוי ההיבלעות.
+ * מקודד בבסיס64 כמו בקטלוג (בייט אחד לתא).
+ */
+const COLONY_PATCH = decodeSeed({
+  w: 36, h: 36,
+  b64: 'AAAAAAD/AAD1/wAAAAAAAAAAAAD/AAAA//8AAAAAAAAAAAD/AAAAAAD/////8AAAAAAAAAAAAP//AAD//wAAAAAAAAAAAP//AAAAAAD/////AAAAAAAAAAAA////////AAAAAAAAAAAAAP//AAAAAAAA//8AAAAAAAAAAAD//wAA//8AAAAAAAAAAAAAAP//AAAAAAAAAAAAAAAAAAAAAP//AAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP8AAAAA/wAAAAAAAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAP8AAAD/4AAAAAAAAAAAAAD/AAAAAAAAAAAAAAAAAAAAAAAAAP//AP//AAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAD/////AAAAAAAAAP////8AAAAAAAAAAAAAAAAAAAAAAAAAAP//AP//AAAAAAAA//+rAP//AAAAAAAAAAAAAAAAAAAAAAAAAP8AAAD/AAAAAAAA/8kAAAD//wAAAAAAAAAAAAAAAAAAAAAAxP8AAP//AAAAAAAA//8AAAAA/wAAAAAAAAAAAAAAAAAAAAAA//8A+v8AAAAAAAAAAP//AAAA//8AAAAAAAAAAAAAAAAAAAAA/1IA//8AAAAAAAAAAAAA///////rAAAAAAAAAAAAAAAAAAD//wAA/wAAAAAAAAAAAAAAAAAA//////////8AAAAAAAAAAAD/AAAA/wAAAAAAAAAAAAAAAAAAAAD///8AAPr//wAAAAAAAP//AAAA/wAAAAAAAAAAAAAAAAAAAAD//wAAAADE//8AAAAAAP//AAAA/wAAAAAAAAAAAAAAAAAAAAAA//8AAAAA//8AAAAAAP///////wAAAAAAAAAAAAAAAAAAAAAAAP//AAD//wAAAAAAAAAA////AAAAAAAA/wAAAAAAAAAAAAAAAAD/////AAAAAAAAAAAAAAAAAAAAAAAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP+wAAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP8AAAAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/AAAA9/8AAAAAAAAAAAAAAAAAAAAAAAAA//////8AAAAAAAD//wAA//8AAAAAAAAA//////8AAAD/////8gAA+v9KAAAAAAAA/////wAAAAAAAAD//zgArf//////////AAAAAP//AAAAAAAAAP//KwAAAAAAAAD/AAAAAAD/////////AAAAXv8AAAAAAAAAAAAAAAAAAAAAAAD/PQAAAP///wAAAFn//////60AAAAAAAAAAAAAAAAAAAAAAAD//7gA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////QgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/////RwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+});
+
 const ORBIUM_SEED = seedFromRows(ORBIUM_CELLS);
 
+/**
+ * רשימת היצורים והניסויים המובנים.
+ * כל רשומה: name, description (טיפ לילד), params (כולל kernelType),
+ * ואחד מ: seed (דפוס קבוע) / soup (מרק אקראי טרי) / כלום (עולם ריק).
+ */
 export const CREATURES = [
   {
     id: 'orbium',
     name: 'אורביום — המדוזה השוחה',
     description: 'היצור המפורסם של לניה. שוחה באלכסון בקו ישר. נסו להזיז מעט את σ ותראו מה קורה לו!',
-    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10 },
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10, kernelType: 'ring1' },
     seed: ORBIUM_SEED,
   },
   {
     id: 'collision',
     name: 'ההתנגשות 💥',
     description: 'שני אורביומים שוחים זה מול זה. חכו בסבלנות למפגש... לפעמים שניהם מתאדים, ולפעמים נולד משהו חדש — תלוי בגודל העולם!',
-    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10 },
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10, kernelType: 'ring1' },
     // אחד רגיל ואחד מסובב 180° — כך הם שוחים בדיוק אחד לקראת השני.
     // המרווח ביניהם (48 תאים באלכסון) אומת מספרית: הם מתנגשים ומתאיידים.
     seed: compose(68, 68, [
@@ -126,7 +142,7 @@ export const CREATURES = [
     id: 'school',
     name: 'הלהקה 🐠',
     description: 'שלושה אורביומים שוחים יחד במבנה, כמו להקת דגים. הם לעולם לא יתנגשו — כולם שוחים באותה מהירות בדיוק, לאותו כיוון.',
-    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10 },
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10, kernelType: 'ring1' },
     // שלושה עותקים באותו כיוון — מהירות זהה ⇒ המרחק ביניהם נשמר לנצח.
     // המרווח (34 תאים באלכסון) אומת: מסה קבועה של פי 3 לאורך 900+ דורות.
     seed: compose(88, 88, [
@@ -136,17 +152,29 @@ export const CREATURES = [
     ]),
   },
   {
+    id: 'absorption',
+    name: 'ההיבלעות 🌀',
+    description: 'אורביום שוחה לעבר מושבה מתפשטת. מי ינצח — השחיין הבודד או ההמון? שימו לב לרגע שבו הוא הופך לחלק מהם...',
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 10, kernelType: 'ring1' },
+    // אורביום בפינה, מקטע מושבה בהמשך מסלול השחייה שלו. אומת: המושבה
+    // מתפשטת, האורביום שוחה לתוכה ונבלע (התנועה צונחת מ~80 ל~3).
+    seed: compose(84, 84, [
+      { seed: ORBIUM_SEED, x: 0, y: 0 },
+      { seed: COLONY_PATCH, x: 48, y: 48 },
+    ]),
+  },
+  {
     id: 'flower',
     name: 'הפרח הפורח 🌸',
     description: 'מכתם עגול אחד קטן... פורח עולם שלם! כש‑σ גמיש יותר, גם התחלה צנועה מצליחה לצמוח.',
-    params: { mu: 0.15, sigma: 0.03, R: 13, T: 10 },
+    params: { mu: 0.15, sigma: 0.03, R: 13, T: 10, kernelType: 'ring1' },
     seed: diskSeed(8),
   },
   {
     id: 'boiling',
     name: 'המושבה הרותחת 🫧',
     description: 'מרק שלא נרדם! כשהזמן T קטן, העולם נשאר רותח ומשתנה לנצח. כל לחיצה — עולם חדש.',
-    params: { mu: 0.15, sigma: 0.017, R: 13, T: 3 },
+    params: { mu: 0.15, sigma: 0.017, R: 13, T: 3, kernelType: 'ring1' },
     // בלי seed קבוע: הניסוי הזה נזרע ממרק אקראי טרי בכל הפעלה.
     soup: { density: 0.5 },
   },
@@ -154,11 +182,18 @@ export const CREATURES = [
     id: 'greenhouse',
     name: 'חממת הציורים 🎨',
     description: 'עולם ריק עם חוק סלחני במיוחד — כל מה שתציירו באצבע (בקו עבה!) יקום לתחייה ויפרח. נסו לצייר לב.',
-    params: { mu: 0.15, sigma: 0.035, R: 13, T: 10 },
+    params: { mu: 0.15, sigma: 0.035, R: 13, T: 10, kernelType: 'ring1' },
     // בלי seed ובלי מרק — העולם נשאר ריק ומחכה לציור של הילד.
     // המברשת מוגדלת אוטומטית ל‑9: קווים דקים מדי מתים גם כאן (נבדק).
     brush: 9,
     toastMsg: 'העולם מחכה לכם — ציירו באצבע, וכשתרימו אותה הציור יתעורר לחיים! 🎨',
+  },
+  {
+    id: 'waves',
+    name: 'שדה הגלים 🌊',
+    description: 'משקפיים חדשים = עולם חדש! עם גרעין של שתי טבעות, המרק קופא לדוגמת פסים מסתלסלת כמו טביעת אצבע — במקום נקודות. המחוון יגיד "כאוס" כי העולם רווי, אבל תראו כמה סדר יש בו!',
+    params: { mu: 0.28, sigma: 0.06, R: 13, T: 10, kernelType: 'rings2' },
+    soup: { density: 0.5 },
   },
 ];
 

@@ -5,7 +5,7 @@
  * הרינדור (render.js), הקטלוג (catalog.js) ומפת הפאזה (phasemap.js).
  */
 
-import { Lenia, classifyState } from './lenia.js';
+import { Lenia, classifyState, KERNEL_TYPES } from './lenia.js';
 import { Renderer, PALETTES } from './render.js';
 import { PhaseMap } from './phasemap.js';
 import { CREATURES } from './creatures.js';
@@ -13,7 +13,7 @@ import * as catalog from './catalog.js';
 
 /* ================= הגדרות כלליות ================= */
 
-const DEFAULTS = { mu: 0.15, sigma: 0.017, R: 13, T: 10 };
+const DEFAULTS = { mu: 0.15, sigma: 0.017, R: 13, T: 10, kernelType: 'ring1' };
 const HISTORY_LEN = 240;          // כמה פריימים אחורה זוכר גרף המסה
 const STUDENT_KEY = 'lenia.student';
 
@@ -159,6 +159,8 @@ function syncSlidersFromParams() {
   $('sigmaValue').textContent = sim.sigma.toFixed(3);
   $('rValue').textContent = sim.R;
   $('tValue').textContent = sim.T;
+  $('kernelSelect').value = sim.kernelType;
+  phaseMap.setKernelType(sim.kernelType);
 }
 
 /* ================= פעולות ================= */
@@ -336,7 +338,12 @@ function renderGallery() {
     const loadBtn = document.createElement('button');
     loadBtn.textContent = '🐣 שחרר לעולם';
     loadBtn.addEventListener('click', () => {
-      loadCreatureIntoWorld({ params: e.params, seed: catalog.decodeSeed(e.seed), name: e.name });
+      // רשומות ישנות (מלפני בורר הגרעינים) לא שמרו kernelType — ברירת מחדל ring1
+      loadCreatureIntoWorld({
+        params: { kernelType: 'ring1', ...e.params },
+        seed: catalog.decodeSeed(e.seed),
+        name: e.name,
+      });
     });
 
     const delBtn = document.createElement('button');
@@ -382,7 +389,7 @@ function setupSaveDialog() {
     try {
       catalog.saveCreature({
         name,
-        params: { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T },
+        params: { mu: sim.mu, sigma: sim.sigma, R: sim.R, T: sim.T, kernelType: sim.kernelType },
         seed,
         thumbnail: renderer.thumbnail(),
         discoveredBy: student,
@@ -466,6 +473,20 @@ function init() {
   $('brushMode').addEventListener('click', () => {
     brushErase = !brushErase;
     $('brushMode').textContent = brushErase ? '🧽 מחק' : '✏️ צייר';
+  });
+
+  // בורר צורת הגרעין ("המשקפיים")
+  const kernelSelect = $('kernelSelect');
+  for (const [key, k] of Object.entries(KERNEL_TYPES)) {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = k.name;
+    kernelSelect.appendChild(opt);
+  }
+  kernelSelect.addEventListener('change', () => {
+    sim.setParams({ kernelType: kernelSelect.value });
+    phaseMap.setKernelType(kernelSelect.value);
+    toast('משקפיים חדשים! 🔭 פיזיקה חדשה — זרעו מרק ובדקו מה חי כאן');
   });
 
   // פלטות צבע

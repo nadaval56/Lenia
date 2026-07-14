@@ -281,6 +281,14 @@ select {
   padding: 8px;
   min-height: 40px;
 }
+
+.kernel-select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  background: var(--panel-2);
+  min-height: 44px;
+}
 .explainer p { font-size: 0.92rem; }
 
 /* ---------- ספר המינים ---------- */
